@@ -102,17 +102,6 @@ export default function Navigation({ onSearch }: NavigationProps) {
               ✨ AI 識別
             </a>
           </Link>
-          <Link href="/ai-settings">
-            <a
-              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
-                location === '/ai-settings'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-secondary hover:text-accent'
-              }`}
-            >
-              ⚙️ 設定
-            </a>
-          </Link>
           <ThemeToggle />
         </div>
       </div>
