@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1770185088992,
+      "tag": "0000_tan_thunderbolt",
+      "breakpoints": true
+    }
+  ]
+}

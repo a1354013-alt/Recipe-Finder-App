@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Lato:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Culinary Kitchen Aesthetic - Warm Orange & Fresh Green (Light Mode) */
+  --primary: #E8743B;
+  --primary-foreground: #FFFFFF;
+  --background: #FFFFFF;
+  --foreground: #4A4A4A;
+  --card: #F5F5F5;
+  --card-foreground: #4A4A4A;
+  --border: #E0E0E0;
+  --input: #F5F5F5;
+  --accent: #E8743B;
+  --accent-foreground: #FFFFFF;
+  --muted: #D0D0D0;
+  --muted-foreground: #808080;
+  --secondary: #F0F0F0;
+  --secondary-foreground: #4A4A4A;
+}
+
+.dark {
+  /* Dark Mode */
+  --primary: #E8743B;
+  --primary-foreground: #FFFFFF;
+  --background: #1A1A1A;
+  --foreground: #E5E5E5;
+  --card: #2D2D2D;
+  --card-foreground: #E5E5E5;
+  --border: #404040;
+  --input: #2D2D2D;
+  --accent: #F5A962;
+  --accent-foreground: #1A1A1A;
+  --muted: #505050;
+  --muted-foreground: #A0A0A0;
+  --secondary: #2D2D2D;
+  --secondary-foreground: #E5E5E5;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Lato', sans-serif;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[type="button"]:not(:disabled),
+[type="submit"]:not(:disabled),
+[type="reset"]:not(:disabled),
+a[href],
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Recipe Card Style - Soft Shadow */
+.recipe-card {
+  background-color: #F5F5F5;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 300ms ease;
+}
+
+.recipe-card:hover {
+  box-shadow: 0 10px 25px rgba(232, 116, 59, 0.1);
+  transform: translateY(-4px);
+}
+
+/* Green Accent Tag */
+.ingredient-tag {
+  display: inline-block;
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+}
+
+.ingredient-tag.accent {
+  background-color: #fed7aa;
+  color: #b45309;
+}
+
+/* Section Title */
+.section-title {
+  font-size: 30px;
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+  color: #E8743B;
+  margin-bottom: 32px;
+}
+
+/* Divider */
+.recipe-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #E0E0E0, transparent);
+}
+
+/* Container */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.flex {
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    max-width: 1280px;
+  }
+}
+
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
