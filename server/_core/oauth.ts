@@ -87,7 +87,7 @@ export function registerOAuthRoutes(app: Express) {
         maxAge: STATE_COOKIE_MAX_AGE_MS,
         sameSite: "lax", // 明確設定跨站策略，避免瀏覽器預設改變
       });
-      logger.info("[OAuth] State stored in httpOnly cookie", {}, (req as any).id);
+      logger.info("[OAuth] State stored in httpOnly cookie", "State cookie set", undefined, undefined, (req as any).id);
 
       // 構建 OAuth 登入 URL
       // 使用 PUBLIC_BASE_URL（固定化，禁止 x-forwarded-host 注入）

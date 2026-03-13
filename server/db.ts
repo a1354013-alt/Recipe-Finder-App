@@ -221,3 +221,216 @@ export async function closePool(): Promise<void> {
     }
   }
 }
+
+
+/**
+ * ==========================================
+ * Favorites 相關函數
+ * ==========================================
+ */
+
+export async function addFavorite(userId: number, recipeId: number, recipeName: string, recipeImage?: string) {
+  const db = await getDbOrThrow();
+  const { favorites } = await import("../drizzle/schema");
+
+  try {
+    await db.insert(favorites).values({
+      userId,
+      recipeId,
+      recipeName,
+      recipeImage,
+    });
+    logger.info("[DB] Favorite added", "Recipe added to favorites", { userId, recipeId });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to add favorite", { error: errorMessage, userId, recipeId });
+    throw error;
+  }
+}
+
+export async function removeFavorite(userId: number, recipeId: number) {
+  const db = await getDbOrThrow();
+  const { favorites } = await import("../drizzle/schema");
+
+  try {
+    await db.delete(favorites).where(
+      eq(favorites.userId, userId) && eq(favorites.recipeId, recipeId)
+    );
+    logger.info("[DB] Favorite removed", "Recipe removed from favorites", { userId, recipeId });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to remove favorite", { error: errorMessage, userId, recipeId });
+    throw error;
+  }
+}
+
+export async function getUserFavorites(userId: number) {
+  const db = await getDbOrThrow();
+  const { favorites } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(favorites).where(eq(favorites.userId, userId));
+    logger.info("[DB] Favorites retrieved", "User favorites fetched", { userId, count: result.length });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get favorites", { error: errorMessage, userId });
+    throw error;
+  }
+}
+
+export async function isFavorited(userId: number, recipeId: number): Promise<boolean> {
+  const db = await getDbOrThrow();
+  const { favorites } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(favorites).where(
+      eq(favorites.userId, userId) && eq(favorites.recipeId, recipeId)
+    ).limit(1);
+    return result.length > 0;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to check favorite status", { error: errorMessage, userId, recipeId });
+    return false;
+  }
+}
+
+/**
+ * ==========================================
+ * Shopping Lists 相關函數
+ * ==========================================
+ */
+
+export async function createShoppingList(userId: number, name: string, description?: string) {
+  const db = await getDbOrThrow();
+  const { shoppingLists } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.insert(shoppingLists).values({
+      userId,
+      name,
+      description,
+    });
+    logger.info("[DB] Shopping list created", "New shopping list created", { userId, name });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to create shopping list", { error: errorMessage, userId });
+    throw error;
+  }
+}
+
+export async function getUserShoppingLists(userId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingLists } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(shoppingLists).where(eq(shoppingLists.userId, userId));
+    logger.info("[DB] Shopping lists retrieved", "User shopping lists fetched", { userId, count: result.length });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get shopping lists", { error: errorMessage, userId });
+    throw error;
+  }
+}
+
+export async function addShoppingListItem(shoppingListId: number, ingredient: string, quantity?: string, unit?: string) {
+  const db = await getDbOrThrow();
+  const { shoppingListItems } = await import("../drizzle/schema");
+
+  try {
+    await db.insert(shoppingListItems).values({
+      shoppingListId,
+      ingredient,
+      quantity,
+      unit,
+      checked: 0,
+    });
+    logger.info("[DB] Shopping list item added", "Item added to shopping list", { shoppingListId, ingredient });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to add shopping list item", { error: errorMessage, shoppingListId });
+    throw error;
+  }
+}
+
+export async function getShoppingListItems(shoppingListId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingListItems } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(shoppingListItems).where(eq(shoppingListItems.shoppingListId, shoppingListId));
+    logger.info("[DB] Shopping list items retrieved", "Items fetched", { shoppingListId, count: result.length });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get shopping list items", { error: errorMessage, shoppingListId });
+    throw error;
+  }
+}
+
+export async function updateShoppingListItemStatus(itemId: number, checked: boolean) {
+  const db = await getDbOrThrow();
+  const { shoppingListItems } = await import("../drizzle/schema");
+
+  try {
+    await db.update(shoppingListItems).set({ checked: checked ? 1 : 0 }).where(eq(shoppingListItems.id, itemId));
+    logger.info("[DB] Shopping list item updated", "Item status updated", { itemId, checked });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to update shopping list item", { error: errorMessage, itemId });
+    throw error;
+  }
+}
+
+/**
+ * ==========================================
+ * AI Recognition History 相關函數
+ * ==========================================
+ */
+
+export async function addAIRecognitionHistory(
+  userId: number,
+  imageUrl: string,
+  recognizedIngredients: string[],
+  recommendedRecipes?: string[],
+  requestId?: string
+) {
+  const db = await getDbOrThrow();
+  const { aiRecognitionHistory } = await import("../drizzle/schema");
+
+  try {
+    await db.insert(aiRecognitionHistory).values({
+      userId,
+      imageUrl,
+      recognizedIngredients: JSON.stringify(recognizedIngredients),
+      recommendedRecipes: recommendedRecipes ? JSON.stringify(recommendedRecipes) : null,
+      requestId,
+    });
+    logger.info("[DB] AI recognition history added", "History recorded", { userId, requestId });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to add AI recognition history", { error: errorMessage, userId });
+    throw error;
+  }
+}
+
+export async function getUserAIRecognitionHistory(userId: number, limit: number = 20) {
+  const db = await getDbOrThrow();
+  const { aiRecognitionHistory } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(aiRecognitionHistory)
+      .where(eq(aiRecognitionHistory.userId, userId))
+      .orderBy((t: any) => t.createdAt)
+      .limit(limit);
+    
+    logger.info("[DB] AI recognition history retrieved", "History fetched", { userId, count: result.length });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get AI recognition history", { error: errorMessage, userId });
+    throw error;
+  }
+}

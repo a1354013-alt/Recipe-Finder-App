@@ -15,6 +15,13 @@
       "when": 1772876135252,
       "tag": "0001_lonely_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773382846163,
+      "tag": "0002_spicy_gunslinger",
+      "breakpoints": true
     }
   ]
 }

@@ -43,3 +43,69 @@ export const auditLogs = mysqlTable("auditLogs", {
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Favorites table
+ * Stores user's favorite recipes
+ */
+export const favorites = mysqlTable("favorites", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  recipeId: int("recipeId").notNull(),
+  recipeName: varchar("recipeName", { length: 255 }).notNull(),
+  recipeImage: text("recipeImage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Favorite = typeof favorites.$inferSelect;
+export type InsertFavorite = typeof favorites.$inferInsert;
+
+/**
+ * Shopping lists table
+ * Stores user's shopping lists
+ */
+export const shoppingLists = mysqlTable("shoppingLists", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ShoppingList = typeof shoppingLists.$inferSelect;
+export type InsertShoppingList = typeof shoppingLists.$inferInsert;
+
+/**
+ * Shopping list items table
+ * Stores items in a shopping list
+ */
+export const shoppingListItems = mysqlTable("shoppingListItems", {
+  id: int("id").autoincrement().primaryKey(),
+  shoppingListId: int("shoppingListId").notNull(),
+  ingredient: varchar("ingredient", { length: 255 }).notNull(),
+  quantity: varchar("quantity", { length: 100 }),
+  unit: varchar("unit", { length: 50 }),
+  checked: int("checked").default(0).notNull(), // 0 = unchecked, 1 = checked
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
+export type InsertShoppingListItem = typeof shoppingListItems.$inferInsert;
+
+/**
+ * AI recognition history table
+ * Records user's AI ingredient recognition and recipe recommendations
+ */
+export const aiRecognitionHistory = mysqlTable("aiRecognitionHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  imageUrl: text("imageUrl").notNull(),
+  recognizedIngredients: text("recognizedIngredients").notNull(), // JSON array
+  recommendedRecipes: text("recommendedRecipes"), // JSON array
+  requestId: varchar("requestId", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AIRecognitionHistory = typeof aiRecognitionHistory.$inferSelect;
+export type InsertAIRecognitionHistory = typeof aiRecognitionHistory.$inferInsert;

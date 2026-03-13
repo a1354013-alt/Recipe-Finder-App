@@ -113,6 +113,17 @@ export default function Navigation({ onSearch }: NavigationProps) {
               ⚙️ 設定
             </a>
           </Link>
+          <Link href="/ai-history">
+            <a
+              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
+                location === '/ai-history'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-foreground hover:bg-secondary hover:text-accent'
+              }`}
+            >
+              📜 History
+            </a>
+          </Link>
           <ThemeToggle />
         </div>
       </div>

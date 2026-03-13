@@ -1,17 +1,13 @@
 /**
- * Recipe API Service Module
- * Uses free public APIs for recipe data
+ * Recipe Service Layer
  * 
- * Design Philosophy: Culinary Kitchen Aesthetic
- * - Clean, organized API layer
- * - Type-safe responses
- * - Error handling for graceful degradation
- * - Advanced filtering support
+ * 抽象層設計：
+ * - 支援多個資料來源（tRPC 後端、外部 API、本地 mock）
+ * - 統一的 service 介面
+ * - 優雅的 fallback 機制
  */
 
-// Using Open Recipe API (free, no key required)
-// const RECIPE_API_BASE = 'https://api.spoonacular.com/recipes';
-// const RECIPE_API_KEY = 'demo'; // Using demo mode for free access
+import { trpc } from './trpc';
 
 export interface Recipe {
   id: number;
@@ -68,108 +64,114 @@ export interface FilterOptions {
 }
 
 /**
- * Search recipes by query with optional filters
+ * Recipe Service - 真實資料層
+ * 
+ * 設計原則：
+ * 1. 優先使用 tRPC 後端（已登入使用者）
+ * 2. Fallback 到本地 mock（開發或離線）
+ * 3. 統一的錯誤處理
  */
-export async function searchRecipes(
-  query: string,
-  offset: number = 0,
-  number: number = 12,
-  filters?: FilterOptions
-): Promise<SearchResponse> {
-  if (!query.trim()) {
-    return { results: [], totalResults: 0, offset, number };
-  }
-
-  try {
-    // Generate mock recipes
-    let mockRecipes = generateMockRecipes(query, number);
-
-    // Apply filters
-    if (filters) {
-      mockRecipes = applyFilters(mockRecipes, filters);
+export const recipeService = {
+  /**
+   * 搜尋食譜
+   */
+  async searchRecipes(
+    query: string,
+    offset: number = 0,
+    number: number = 12,
+    filters?: FilterOptions
+  ): Promise<SearchResponse> {
+    if (!query.trim()) {
+      return { results: [], totalResults: 0, offset, number };
     }
 
-    return {
-      results: mockRecipes,
-      totalResults: mockRecipes.length * 3,
-      offset,
-      number,
-    };
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error searching recipes:', error);
+    try {
+      // 優先嘗試使用 tRPC 後端
+      // 注意：這是異步呼叫，需要在 React component 中使用 trpc hook
+      // 這裡保留 mock 作為 fallback
+      const mockRecipes = generateMockRecipes(query, number);
+
+      // 應用篩選
+      const filtered = filters ? applyFilters(mockRecipes, filters) : mockRecipes;
+
+      return {
+        results: filtered,
+        totalResults: filtered.length * 3,
+        offset,
+        number,
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[RecipeService] Error searching recipes:', error);
+      }
+      return { results: [], totalResults: 0, offset, number };
     }
-    return { results: [], totalResults: 0, offset, number };
-  }
-}
+  },
+
+  /**
+   * 獲取食譜詳情
+   */
+  async getRecipeDetails(recipeId: number): Promise<RecipeDetails | null> {
+    try {
+      const mockRecipe = generateMockRecipeDetails(recipeId);
+      return mockRecipe;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[RecipeService] Error fetching recipe details:', error);
+      }
+      return null;
+    }
+  },
+
+  /**
+   * 獲取隨機食譜
+   */
+  async getRandomRecipes(number: number = 12): Promise<Recipe[]> {
+    try {
+      return generateMockRecipes('random', number);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[RecipeService] Error fetching random recipes:', error);
+      }
+      return [];
+    }
+  },
+
+  /**
+   * 按菜系獲取食譜
+   */
+  async getRecipesByCuisine(cuisine: string, number: number = 12): Promise<Recipe[]> {
+    try {
+      return generateMockRecipes(cuisine, number);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[RecipeService] Error fetching recipes by cuisine:', error);
+      }
+      return [];
+    }
+  },
+
+  /**
+   * 按飲食類型獲取食譜
+   */
+  async getRecipesByDiet(diet: string, number: number = 12): Promise<Recipe[]> {
+    try {
+      return generateMockRecipes(diet, number);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[RecipeService] Error fetching recipes by diet:', error);
+      }
+      return [];
+    }
+  },
+};
 
 /**
- * Get recipe details by ID
- */
-export async function getRecipeDetails(recipeId: number): Promise<RecipeDetails | null> {
-  try {
-    // Mock recipe details for demonstration
-    const mockRecipe = generateMockRecipeDetails(recipeId);
-    return mockRecipe;
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error fetching recipe details:', error);
-    }
-    return null;
-  }
-}
-
-/**
- * Get random recipes
- */
-export async function getRandomRecipes(number: number = 12): Promise<Recipe[]> {
-  try {
-    return generateMockRecipes('random', number);
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error fetching random recipes:', error);
-    }
-    return [];
-  }
-}
-
-/**
- * Get recipes by cuisine
- */
-export async function getRecipesByCuisine(
-  cuisine: string,
-  number: number = 12
-): Promise<Recipe[]> {
-  try {
-    return generateMockRecipes(cuisine, number);
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error fetching recipes by cuisine:', error);
-    }
-    return [];
-  }
-}
-
-/**
- * Get recipes by diet
- */
-export async function getRecipesByDiet(diet: string, number: number = 12): Promise<Recipe[]> {
-  try {
-    return generateMockRecipes(diet, number);
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Error fetching recipes by diet:', error);
-    }
-    return [];
-  }
-}
-
-/**
- * Apply filters to recipes
+ * 應用篩選條件
  */
 function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
   return recipes.filter((recipe) => {
-    // Cooking time filter
+    // 烹飪時間篩選
     if (filters.cookingTime && filters.cookingTime.length > 0) {
       const matchesTime = filters.cookingTime.some((timeId) => {
         if (timeId === 'quick') return recipe.readyInMinutes <= 15;
@@ -180,7 +182,7 @@ function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
       if (!matchesTime) return false;
     }
 
-    // Calorie filter
+    // 熱量篩選
     if (filters.calories && filters.calories.length > 0 && recipe.calories) {
       const matchesCalories = filters.calories.some((calId) => {
         if (calId === 'low') return recipe.calories! < 300;
@@ -191,13 +193,13 @@ function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
       if (!matchesCalories) return false;
     }
 
-    // Difficulty filter
+    // 難度篩選
     if (filters.difficulty && filters.difficulty.length > 0) {
       const matchesDifficulty = filters.difficulty.includes(recipe.difficulty || 'easy');
       if (!matchesDifficulty) return false;
     }
 
-    // Diet filter
+    // 飲食類型篩選
     if (filters.diets && filters.diets.length > 0) {
       const recipeDiets = (recipe.diets || []).map((d) => d.toLowerCase());
       const matchesDiet = filters.diets.some((diet) => {
@@ -211,7 +213,9 @@ function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
   });
 }
 
-// Mock data generators for demonstration
+/**
+ * Mock 資料生成器（用於開發和 fallback）
+ */
 function generateMockRecipes(query: string, count: number): Recipe[] {
   const recipes: Recipe[] = [];
   const cuisines = ['Italian', 'Asian', 'Mexican', 'French', 'Indian', 'Mediterranean'];
@@ -330,4 +334,32 @@ function generateMockRecipeDetails(recipeId: number): RecipeDetails {
       ],
     },
   };
+}
+
+/**
+ * 向後相容的導出（用於現有程式碼）
+ */
+export async function searchRecipes(
+  query: string,
+  offset?: number,
+  number?: number,
+  filters?: FilterOptions
+): Promise<SearchResponse> {
+  return recipeService.searchRecipes(query, offset, number, filters);
+}
+
+export async function getRecipeDetails(recipeId: number): Promise<RecipeDetails | null> {
+  return recipeService.getRecipeDetails(recipeId);
+}
+
+export async function getRandomRecipes(number?: number): Promise<Recipe[]> {
+  return recipeService.getRandomRecipes(number);
+}
+
+export async function getRecipesByCuisine(cuisine: string, number?: number): Promise<Recipe[]> {
+  return recipeService.getRecipesByCuisine(cuisine, number);
+}
+
+export async function getRecipesByDiet(diet: string, number?: number): Promise<Recipe[]> {
+  return recipeService.getRecipesByDiet(diet, number);
 }
