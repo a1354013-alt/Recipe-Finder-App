@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
-import { getDb } from "../db";
+import { getDb, dbPing } from "../db";
 import { logger } from "./logger";
 
 export const systemRouter = router({
@@ -34,35 +34,20 @@ export const systemRouter = router({
 
     try {
       // Check database connectivity with timeout
-      const db = await getDb();
-      if (!db) {
-        checks.database = false;
-        reason = "Database initialization failed";
-      } else {
-        try {
-          // Execute a simple query to verify DB is responsive
-          // 使用 Promise.race 實現 timeout
-          const pingPromise = db.execute("SELECT 1");
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("DB ping timeout")), DB_PING_TIMEOUT_MS)
-          );
-          await Promise.race([pingPromise, timeoutPromise]);
-          checks.database = true;
-        } catch (dbError) {
-          checks.database = false;
-          reason = `Database query failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`;
-          logger.warn(
-            "[READY] Database ping failed",
-            { reason, requestId: opts.ctx.requestId }
-          );
-        }
-      }
+      const pingPromise = dbPing();
+      const timeoutPromise = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error("DB ping timeout")), DB_PING_TIMEOUT_MS)
+      );
+      await Promise.race([pingPromise, timeoutPromise]);
+      checks.database = true;
     } catch (error) {
       checks.database = false;
-      reason = `Database connection error: ${error instanceof Error ? error.message : String(error)}`;
+      reason = `Database ping failed: ${error instanceof Error ? error.message : String(error)}`;
       logger.warn(
-        "[READY] Database connection check failed",
-        { reason, requestId: opts.ctx.requestId }
+        "[READY] Database ping failed",
+        "Connection check failed",
+        { reason },
+        opts.ctx.requestId
       );
     }
 
@@ -72,14 +57,16 @@ export const systemRouter = router({
     if (!ok) {
       logger.warn(
         "[READY] Readiness check failed",
-        { reason, duration, checks, requestId: opts.ctx.requestId }
+        "System not ready",
+        { reason, duration, checks },
+        opts.ctx.requestId
       );
     }
 
     return {
       ok,
       reason: reason || undefined,
-      version: "1.0.0",
+      version: process.env.npm_package_version ?? "unknown",
       env: process.env.NODE_ENV || "development",
       uptimeSec: Math.floor(process.uptime()),
       checkDurationMs: duration,

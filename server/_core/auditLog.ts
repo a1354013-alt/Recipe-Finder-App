@@ -82,10 +82,10 @@ class AuditLogManager {
 
     if (this.queue.length >= this.BATCH_SIZE) {
       // 非同步 flush，不等待
-      this.flush().catch(err => {
+      this.flush().catch((err: unknown) => {
         logger.error(
           "[AuditLog] Flush failed",
-          { error: err instanceof Error ? err.message : String(err) }
+          err instanceof Error ? err.message : String(err)
         );
       });
     }
@@ -111,13 +111,14 @@ class AuditLogManager {
       if (events.length > 0) {
         logger.debug(
           "[AuditLog] Flushed events",
+          `Wrote ${events.length} events`,
           { count: events.length, remaining: this.queue.length }
         );
       }
     } catch (error) {
       logger.error(
         "[AuditLog] Flush error",
-        { error: error instanceof Error ? error.message : String(error) }
+        error instanceof Error ? error.message : String(error)
       );
     } finally {
       this.processing = false;
@@ -177,167 +178,7 @@ class AuditLogManager {
       await this.flush();
     }
   }
-
-  /**
-   * 取得統計資訊
-   */
-  getStats(): { queueSize: number; processing: boolean } {
-    return {
-      queueSize: this.queue.length,
-      processing: this.processing,
-    };
-  }
 }
 
-// 全域單例
-export const auditLog = new AuditLogManager();
-
-/**
- * 便利函式：記錄 OAuth 登入
- */
-export async function auditOAuthLogin(
-  userId: string | number,
-  requestId: string,
-  success: boolean,
-  metadata?: Record<string, unknown>
-): Promise<void> {
-  await auditLog.log({
-    action: success ? 'oauth_login_success' : 'oauth_login_failure',
-    userId,
-    requestId,
-    metadata,
-    status: success ? 'success' : 'failure',
-  });
-}
-
-/**
- * 便利函式：記錄 OAuth 登出
- */
-export async function auditOAuthLogout(
-  userId: string | number,
-  requestId: string
-): Promise<void> {
-  await auditLog.log({
-    action: 'oauth_logout',
-    userId,
-    requestId,
-    status: 'success',
-  });
-}
-
-/**
- * 便利函式：記錄 AI 提供者變更
- */
-export async function auditAIProviderChanged(
-  userId: string | number,
-  requestId: string,
-  oldProvider: string,
-  newProvider: string
-): Promise<void> {
-  await auditLog.log({
-    action: 'ai_provider_changed',
-    userId,
-    requestId,
-    metadata: { oldProvider, newProvider },
-    status: 'success',
-  });
-}
-
-/**
- * 便利函式：記錄 AI Ollama 配置變更
- */
-export async function auditAIOllamaConfigChanged(
-  userId: string | number,
-  requestId: string,
-  oldUrl: string,
-  newUrl: string
-): Promise<void> {
-  await auditLog.log({
-    action: 'ai_ollama_config_changed',
-    userId,
-    requestId,
-    metadata: { oldUrl, newUrl },
-    status: 'success',
-  });
-}
-
-/**
- * 便利函式：記錄 AI Ollama 測試
- */
-export async function auditAIOllamaTest(
-  userId: string | number,
-  requestId: string,
-  success: boolean,
-  error?: string
-): Promise<void> {
-  await auditLog.log({
-    action: 'ai_ollama_test',
-    userId,
-    requestId,
-    metadata: error ? { error } : undefined,
-    status: success ? 'success' : 'failure',
-  });
-}
-
-/**
- * 便利函式：記錄 AI Rate limit 超限
- */
-export async function auditAIRateLimitExceeded(
-  userId: string | number,
-  requestId: string,
-  remaining: number,
-  resetTime: number
-): Promise<void> {
-  await auditLog.log({
-    action: 'ai_rate_limit_exceeded',
-    userId,
-    requestId,
-    metadata: { remaining, resetTime },
-    status: 'failure',
-  });
-}
-
-/**
- * 便利函式：記錄 AI 圖片識別
- */
-export async function auditAIImageRecognized(
-  userId: string | number,
-  requestId: string,
-  mimeType: string,
-  ingredientCount: number
-): Promise<void> {
-  await auditLog.log({
-    action: 'ai_image_recognized',
-    userId,
-    requestId,
-    metadata: { mimeType, ingredientCount },
-    status: 'success',
-  });
-}
-
-/**
- * 便利函式：記錄食譜推薦請求
- */
-export async function auditRecipeRecommendationRequested(
-  userId: string | number,
-  requestId: string,
-  ingredientCount: number,
-  maxRecipes: number
-): Promise<void> {
-  await auditLog.log({
-    action: 'recipe_recommendation_requested',
-    userId,
-    requestId,
-    metadata: { ingredientCount, maxRecipes },
-    status: 'success',
-  });
-}
-
-// 優雅關閉時 flush 所有日誌
-process.on('SIGTERM', async () => {
-  await auditLog.flushAll();
-});
-
-process.on('SIGINT', async () => {
-  await auditLog.flushAll();
-});
+// Singleton instance
+export const auditLogManager = new AuditLogManager();

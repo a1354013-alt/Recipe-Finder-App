@@ -6,7 +6,7 @@ import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { logger } from "./logger";
 import { ENV } from "./env";
-import { auditOAuthLogin, auditOAuthLogout } from "./auditLog";
+import { auditLogManager } from "./auditLog";
 
 const STATE_COOKIE_NAME = "oauth_state";
 const STATE_COOKIE_MAX_AGE_MS = 10 * 60 * 1000; // 10 分鐘
@@ -142,14 +142,14 @@ export function registerOAuthRoutes(app: Express) {
 
     // 驗證 code 存在
     if (!code) {
-      logger.warn("[OAuth] Missing authorization code", {}, requestId);
+      logger.warn("[OAuth] Missing authorization code", "Authorization code not found", undefined, requestId);
       res.redirect(302, `/?error=MISSING_CODE&rid=${requestId}`);
       return;
     }
 
     // 驗證 state 存在
     if (!queryState) {
-      logger.warn("[OAuth] Missing state parameter in query", {}, requestId);
+      logger.warn("[OAuth] Missing state parameter in query", "State parameter not found", undefined, requestId);
       res.redirect(302, `/?error=MISSING_STATE&rid=${requestId}`);
       return;
     }
@@ -211,7 +211,7 @@ export function registerOAuthRoutes(app: Express) {
           queryState,
           redirectUri
         );
-        logger.info("[OAuth] Token exchange successful", {}, requestId);
+        logger.info("[OAuth] Token exchange successful", "Token obtained", undefined, requestId);
       } catch (error) {
         logger.warn(
           "[OAuth] Token exchange failed",
@@ -242,7 +242,7 @@ export function registerOAuthRoutes(app: Express) {
       }
 
       if (!userInfo.openId) {
-        logger.warn("[OAuth] User info missing openId", {}, requestId);
+        logger.warn("[OAuth] User info missing openId", "OpenId not in user info", undefined, requestId);
         res.redirect(302, `/?error=MISSING_OPENID&rid=${requestId}`);
         return;
       }
@@ -283,7 +283,7 @@ export function registerOAuthRoutes(app: Express) {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,
       });
-      logger.info("[OAuth] Session token created", {}, requestId);
+      logger.info("[OAuth] Session token created", "Session established", undefined, requestId);
 
       // 設定 session cookie
       const cookieOptions = getSessionCookieOptions(req);

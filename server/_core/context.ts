@@ -23,7 +23,8 @@ export async function createContext(
     // Log authentication failures for debugging (debug level to avoid noise in production)
     logger.debug(
       "[Context] Authentication failed",
-      error instanceof Error ? error.message : String(error),
+      "Auth check skipped for public procedure",
+      { error: error instanceof Error ? error.message : String(error) },
       requestId
     );
     user = null;

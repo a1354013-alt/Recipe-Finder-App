@@ -90,6 +90,38 @@ export async function getDb() {
 }
 
 /**
+ * 取得 Drizzle ORM 實例或拋出錯誤
+ * 用於關鍵路徑，確保 DB 初始化成功
+ */
+export async function getDbOrThrow() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not initialized");
+  }
+  return db;
+}
+
+/**
+ * 檢查 DB 連接是否可用
+ * 使用 connection.ping() 進行可靠的檢查
+ */
+export async function dbPing(): Promise<void> {
+  if (!_pool) {
+    throw new Error("Connection pool not initialized");
+  }
+
+  let connection: mysql.PoolConnection | null = null;
+  try {
+    connection = await _pool.getConnection();
+    await connection.ping();
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
+/**
  * Upsert 用戶
  * 
  * 邏輯：
@@ -103,11 +135,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     throw new Error("User openId is required for upsert");
   }
 
-  const db = await getDb();
-  if (!db) {
-    logger.error("[DB] Database not available for upsert");
-    throw new Error("Database not available");
-  }
+  const db = await getDbOrThrow();
 
   try {
     const values: InsertUser = {
@@ -164,11 +192,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
  * 根據 openId 取得用戶
  */
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    logger.error("[DB] Database not available for query");
-    throw new Error("Database not available");
-  }
+  const db = await getDbOrThrow();
 
   try {
     const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);

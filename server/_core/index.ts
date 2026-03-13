@@ -51,9 +51,9 @@ async function startServer() {
   try {
     // Production 環境驗證必填環境變數
     if (ENV.isProduction) {
-      logger.info("[Server] Validating required environment variables");
+      logger.info("[Server] Validating required environment variables", "Validation started");
       validateRequiredEnv();
-      logger.info("[Server] Environment variables validation passed");
+      logger.info("[Server] Environment variables validation passed", "All variables valid");
     }
 
     const app = express();
@@ -195,7 +195,7 @@ async function startServer() {
       const available = await isPortAvailable(preferredPort);
       if (!available) {
         const error = `Port ${preferredPort} is not available in production environment. Fail fast.`;
-        logger.error("[Server] Port not available", error);
+        logger.error("[Server] Port not available", error instanceof Error ? error.message : String(error));
         throw new Error(error);
       }
       port = preferredPort;
@@ -215,7 +215,7 @@ async function startServer() {
     const SHUTDOWN_TIMEOUT_MS = 15000; // 15 秒強制退出
 
     async function gracefulShutdown(reason: string) {
-      logger.info(`[Server] ${reason}, shutting down gracefully`);
+      logger.info("[Server] Shutdown initiated", reason);
       
       // 設置強制退出 timer
       const shutdownTimer = setTimeout(() => {
@@ -234,15 +234,15 @@ async function startServer() {
             else resolve();
           });
         });
-        logger.info("[Server] HTTP server closed");
+        logger.info("[Server] HTTP server closed", "Server stopped");
 
         // 關閉 DB 連接池
         await closePool();
-        logger.info("[Server] Database connection pool closed");
+        logger.info("[Server] Database connection pool closed", "DB pool released");
 
         // 清除 timer
         clearTimeout(shutdownTimer);
-        logger.info("[Server] Graceful shutdown completed");
+        logger.info("[Server] Graceful shutdown completed", "All resources released");
         process.exit(0);
       } catch (error) {
         logger.error(
@@ -259,10 +259,10 @@ async function startServer() {
 
     server.listen(port, () => {
       const protocol = ENV.isProduction ? "https" : "http";
-      logger.info("[Server] Server started", `Server running on ${protocol}://localhost:${port}/`);
+      logger.info("[Server] Server started", `Running on ${protocol}://localhost:${port}/`);
     });
   } catch (error) {
-    logger.error("[Server] Failed to start server", error);
+    logger.error("[Server] Failed to start server", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

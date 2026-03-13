@@ -43,5 +43,3 @@ export const auditLogs = mysqlTable("auditLogs", {
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
-
-// TODO: Add your tables here

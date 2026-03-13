@@ -56,6 +56,51 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * 全域 API 錯誤處理
+ * - 顯示 requestId 便於後端追蹤
+ * - UNAUTHORIZED 不自動重試
+ * - 其他錯誤輸出到 console
+ */
+function handleTRPCError(error: unknown, context: string) {
+  if (!(error instanceof TRPCClientError)) return;
+
+  // 提取 requestId
+  const requestId = (error.meta as any)?.response?.headers?.get?.("x-request-id");
+  
+  // 檢查是否為認證錯誤
+  const isAuthError = error.data?.code === "UNAUTHORIZED" || error.data?.code === "FORBIDDEN";
+  
+  // 輸出錯誤
+  if (requestId) {
+    console.error(`[${context}] requestId: ${requestId}`, {
+      code: error.data?.code,
+      message: error.message,
+      isAuthError,
+    });
+  } else {
+    console.error(`[${context}]`, {
+      code: error.data?.code,
+      message: error.message,
+      isAuthError,
+    });
+  }
+}
+
+queryClient.getQueryCache().subscribe(event => {
+  if (event.type === "updated" && event.action.type === "error") {
+    const error = event.query.state.error;
+    handleTRPCError(error, "API Query Error");
+  }
+});
+
+queryClient.getMutationCache().subscribe(event => {
+  if (event.type === "updated" && event.action.type === "error") {
+    const error = event.mutation.state.error;
+    handleTRPCError(error, "API Mutation Error");
+  }
+});
+
 const trpcClient = trpc.createClient({
   transformer: superjson,
   links: [

@@ -83,13 +83,13 @@ export function validateRequiredEnv(): void {
 
   if (missing.length > 0) {
     const message = `Missing required environment variables: ${missing.join(", ")}`;
-    logger.error("[ENV] Validation failed", { missing, message });
+    logger.error("[ENV] Validation failed", "Missing required variables", { missing, message });
     throw new Error(message);
   }
 
   if (invalid.length > 0) {
     const message = `Invalid environment variables: ${invalid.join("; ")}`;
-    logger.error("[ENV] Validation failed", { invalid, message });
+    logger.error("[ENV] Validation failed", "Invalid variable values", { invalid, message });
     throw new Error(message);
   }
 }

@@ -98,10 +98,10 @@ export async function notifyOwner(
       body: { title, content },
     });
 
-    logger.info("[Notification] Owner notification sent successfully");
+    logger.info("[Notification] Owner notification sent successfully", "Notification delivered");
     return true;
   } catch (error) {
-    logger.warn("[Notification] Failed to send owner notification", error);
+    logger.warn("[Notification] Failed to send owner notification", error instanceof Error ? error.message : String(error));
     return false;
   }
 }

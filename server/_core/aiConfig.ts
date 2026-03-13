@@ -2,7 +2,8 @@
  * AI Configuration Manager
  * 
  * Manages AI provider settings (Manus or Ollama)
- * Stores configuration in environment variables and memory
+ * Configuration stored in memory, backed by environment variables
+ * For persistence, update .env and restart server
  */
 
 export type AIProvider = 'manus' | 'ollama';
@@ -28,14 +29,14 @@ class AIConfigManager {
   }
 
   /**
-   * Set AI provider
+   * Set AI provider (in-memory only, persists until restart)
    */
   setProvider(provider: AIProvider): void {
     this.config.provider = provider;
   }
 
   /**
-   * Set Ollama configuration
+   * Set Ollama configuration (in-memory only, persists until restart)
    */
   setOllamaConfig(url: string, model: string): void {
     this.config.ollamaUrl = url;

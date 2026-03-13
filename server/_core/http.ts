@@ -117,6 +117,7 @@ export async function httpFetch<T = unknown>(
 
         logger.info(
           '[HTTP] Request',
+          'Sending request',
           {
             method,
             url: url.substring(0, 100),
@@ -131,9 +132,13 @@ export async function httpFetch<T = unknown>(
         
         // 根據 Content-Type 決定如何解析回應
         const contentType = response.headers.get('content-type');
+        const contentLength = response.headers.get('content-length');
         let data: T;
         
-        if (contentType?.includes('application/json')) {
+        // 處理空回應（204、205 或 content-length = 0）
+        if (response.status === 204 || response.status === 205 || contentLength === '0') {
+          data = '' as T;
+        } else if (contentType?.includes('application/json')) {
           data = await response.json() as T;
         } else {
           data = await response.text() as T;
@@ -142,6 +147,7 @@ export async function httpFetch<T = unknown>(
         if (!response.ok) {
           logger.warn(
             '[HTTP] Request failed',
+            'Non-OK response status',
             {
               status: response.status,
               url: url.substring(0, 100),
@@ -156,6 +162,7 @@ export async function httpFetch<T = unknown>(
             const backoffMs = Math.pow(2, attempt) * 1000; // exponential backoff
             logger.debug(
               '[HTTP] Retrying after backoff',
+              'Exponential backoff retry',
               { backoffMs, attempt: attempt + 1 },
               requestId,
               userId
@@ -166,6 +173,7 @@ export async function httpFetch<T = unknown>(
         } else {
           logger.info(
             '[HTTP] Request successful',
+            'Response OK',
             { status: response.status, attempt: attempt + 1 },
             requestId,
             userId
@@ -186,6 +194,7 @@ export async function httpFetch<T = unknown>(
       if (error instanceof Error && error.name === 'AbortError') {
         logger.warn(
           '[HTTP] Request timeout',
+          'Request exceeded timeout',
           { url: url.substring(0, 100), timeoutMs, attempt: attempt + 1 },
           requestId,
           userId
@@ -196,6 +205,7 @@ export async function httpFetch<T = unknown>(
           const backoffMs = Math.pow(2, attempt) * 1000;
           logger.debug(
             '[HTTP] Retrying after timeout',
+            'Exponential backoff retry',
             { backoffMs, attempt: attempt + 1 },
             requestId,
             userId
@@ -209,6 +219,7 @@ export async function httpFetch<T = unknown>(
 
       logger.warn(
         '[HTTP] Request error',
+        'Request failed with error',
         {
           error: error instanceof Error ? error.message.substring(0, 100) : String(error),
           attempt: attempt + 1,
@@ -222,6 +233,7 @@ export async function httpFetch<T = unknown>(
         const backoffMs = Math.pow(2, attempt) * 1000;
         logger.debug(
           '[HTTP] Retrying after error',
+          'Exponential backoff retry',
           { backoffMs, attempt: attempt + 1 },
           requestId,
           userId

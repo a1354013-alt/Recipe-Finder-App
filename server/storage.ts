@@ -40,8 +40,17 @@ async function buildDownloadUrl(
     headers: buildAuthHeaders(apiKey) as Record<string, string>,
   });
   
-  // 明確驗證 response.ok
+  // 明確分類錯誤
   if (!result.ok) {
+    if (result.status === 401 || result.status === 403) {
+      throw new Error(`Storage authentication failed: ${result.status}`);
+    }
+    if (result.status === 404) {
+      throw new Error(`Storage file not found: ${result.status}`);
+    }
+    if (result.status >= 500) {
+      throw new Error(`Storage service error: ${result.status}`);
+    }
     throw new Error(`Storage download URL failed with status ${result.status}`);
   }
   
@@ -102,8 +111,17 @@ export async function storagePut(
     maxRetries: 1, // 上傳失敗可以重試一次
   });
   
-  // 明確驗證 response.ok（不能只依賴 JSON parse 成功）
+  // 明確分類錯誤
   if (!result.ok) {
+    if (result.status === 401 || result.status === 403) {
+      throw new Error(`Storage authentication failed: ${result.status}`);
+    }
+    if (result.status === 413) {
+      throw new Error(`File too large: ${result.status}`);
+    }
+    if (result.status >= 500) {
+      throw new Error(`Storage service error: ${result.status}`);
+    }
     throw new Error(`Storage upload failed with status ${result.status}`);
   }
   

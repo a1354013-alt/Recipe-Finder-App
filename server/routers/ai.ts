@@ -19,14 +19,7 @@ import { createOllamaClient } from "../_core/ollama";
 import { aiConfigManager } from "../_core/aiConfig";
 import { logger } from "../_core/logger";
 import { aiRateLimiter } from "../_core/aiRateLimit";
-import {
-  auditAIProviderChanged,
-  auditAIOllamaConfigChanged,
-  auditAIOllamaTest,
-  auditAIRateLimitExceeded,
-  auditAIImageRecognized,
-  auditRecipeRecommendationRequested,
-} from "../_core/auditLog";
+import { auditLogManager } from "../_core/auditLog";
 
 // Ollama 允許的 hosts（可從環境變數讀取）
 const OLLAMA_ALLOWED_HOSTS = (process.env.OLLAMA_ALLOWED_HOSTS || "localhost,127.0.0.1")
@@ -601,14 +594,16 @@ export const aiRouter = router({
       aiConfigManager.setProvider(input.provider);
 
       // 記錄 audit log（非同步，不阻塞回應）
-      auditAIProviderChanged(
-        ctx.user.id,
-        ctx.requestId,
-        oldProvider,
-        input.provider
-      ).catch(err => {
+      auditLogManager.log({
+        action: 'ai_provider_changed',
+        userId: ctx.user.id,
+        requestId: ctx.requestId,
+        status: 'success',
+        metadata: { oldProvider, newProvider: input.provider },
+      }).catch((err: unknown) => {
         logger.warn(
           "[AI] Failed to log provider change",
+          "Audit log write failed",
           { error: err instanceof Error ? err.message : String(err) },
           String(ctx.requestId)
         );
@@ -639,6 +634,7 @@ export const aiRouter = router({
       if (!validation.valid) {
       logger.warn(
         "[AI] Ollama URL validation failed",
+        "URL validation failed",
         { url: input.url, error: validation.error, admin: ctx.user?.id },
         String(ctx.requestId)
       );
@@ -658,14 +654,16 @@ export const aiRouter = router({
       aiConfigManager.setOllamaConfig(input.url, input.model);
 
       // Record audit log (async, non-blocking)
-      auditAIOllamaConfigChanged(
-        ctx.user.id,
-        ctx.requestId,
-        oldConfig.url,
-        input.url
-      ).catch(err => {
+      auditLogManager.log({
+        action: 'ai_ollama_config_changed',
+        userId: ctx.user.id,
+        requestId: ctx.requestId,
+        status: 'success',
+        metadata: { url: input.url, model: input.model },
+      }).catch((err: unknown) => {
       logger.warn(
         "[AI] Failed to log Ollama config change",
+        "Audit log write failed",
         { error: err instanceof Error ? err.message : String(err) },
         String(ctx.requestId)
       );
@@ -718,13 +716,15 @@ export const aiRouter = router({
         );
 
         // Record audit log (async, non-blocking)
-        auditAIOllamaTest(
-          ctx.user.id,
-          ctx.requestId,
-          isConnected
-        ).catch(err => {
+        auditLogManager.log({
+          action: 'ai_ollama_test',
+          userId: ctx.user.id,
+          requestId: ctx.requestId,
+          status: 'success',
+        }).catch((err: unknown) => {
           logger.warn(
             "[AI] Failed to log Ollama test",
+            "Audit log write failed",
             { error: err instanceof Error ? err.message : String(err) },
             String(ctx.requestId)
           );
