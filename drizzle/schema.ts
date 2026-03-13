@@ -25,4 +25,23 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/**
+ * Audit logs table
+ * Records sensitive operations for security audit and compliance
+ */
+export const auditLogs = mysqlTable("auditLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  action: varchar("action", { length: 64 }).notNull(), // e.g., oauth_login_success, ai_provider_changed
+  userId: int("userId"), // Optional, for public operations
+  requestId: varchar("requestId", { length: 128 }), // For tracing
+  status: mysqlEnum("status", ["success", "failure"]).notNull(),
+  metadata: text("metadata"), // JSON string for additional context
+  details: text("details"), // Optional error message or details
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
 // TODO: Add your tables here

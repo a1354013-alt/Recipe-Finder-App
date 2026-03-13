@@ -1,5 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
+import { httpFetch } from "./http";
+import { logger } from "./logger";
 
 export type NotificationPayload = {
   title: string;
@@ -85,7 +87,7 @@ export async function notifyOwner(
   const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
 
   try {
-    const response = await fetch(endpoint, {
+    await httpFetch(endpoint, {
       method: "POST",
       headers: {
         accept: "application/json",
@@ -93,22 +95,13 @@ export async function notifyOwner(
         "content-type": "application/json",
         "connect-protocol-version": "1",
       },
-      body: JSON.stringify({ title, content }),
+      body: { title, content },
     });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn(
-        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${
-          detail ? `: ${detail}` : ""
-        }`
-      );
-      return false;
-    }
-
+    logger.info("[Notification] Owner notification sent successfully");
     return true;
   } catch (error) {
-    console.warn("[Notification] Error calling notification service:", error);
+    logger.warn("[Notification] Failed to send owner notification", error);
     return false;
   }
 }

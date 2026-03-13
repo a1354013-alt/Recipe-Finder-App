@@ -2,6 +2,7 @@
 // Uses the Biz-provided storage proxy (Authorization: Bearer <token>)
 
 import { ENV } from './_core/env';
+import { httpFetch } from './_core/http';
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
@@ -34,11 +35,21 @@ async function buildDownloadUrl(
     ensureTrailingSlash(baseUrl)
   );
   downloadApiUrl.searchParams.set("path", normalizeKey(relKey));
-  const response = await fetch(downloadApiUrl, {
+  const result = await httpFetch<{ url: string }>(downloadApiUrl.toString(), {
     method: "GET",
-    headers: buildAuthHeaders(apiKey),
+    headers: buildAuthHeaders(apiKey) as Record<string, string>,
   });
-  return (await response.json()).url;
+  
+  // 明確驗證 response.ok
+  if (!result.ok) {
+    throw new Error(`Storage download URL failed with status ${result.status}`);
+  }
+  
+  if (!result.data?.url) {
+    throw new Error("Storage download URL response missing 'url' field");
+  }
+  
+  return result.data.url;
 }
 
 function ensureTrailingSlash(value: string): string {
@@ -46,7 +57,15 @@ function ensureTrailingSlash(value: string): string {
 }
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  // 移除前導斜線
+  let normalized = relKey.replace(/^\/+/, "");
+  
+  // 防止路徑穿越
+  if (normalized.includes("..") || normalized.includes("\\") || normalized.includes("//")) {
+    throw new Error(`Invalid file path: path traversal detected in "${relKey}"`);
+  }
+  
+  return normalized;
 }
 
 function toFormData(
@@ -76,19 +95,23 @@ export async function storagePut(
   const key = normalizeKey(relKey);
   const uploadUrl = buildUploadUrl(baseUrl, key);
   const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
+  const result = await httpFetch<{ url: string }>(uploadUrl.toString(), {
     method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
+    headers: buildAuthHeaders(apiKey) as Record<string, string>,
+    body: formData as any,
+    maxRetries: 1, // 上傳失敗可以重試一次
   });
-
-  if (!response.ok) {
-    const message = await response.text().catch(() => response.statusText);
-    throw new Error(
-      `Storage upload failed (${response.status} ${response.statusText}): ${message}`
-    );
+  
+  // 明確驗證 response.ok（不能只依賴 JSON parse 成功）
+  if (!result.ok) {
+    throw new Error(`Storage upload failed with status ${result.status}`);
   }
-  const url = (await response.json()).url;
+  
+  if (!result.data?.url) {
+    throw new Error("Storage upload response missing 'url' field");
+  }
+  
+  const url = result.data.url;
   return { key, url };
 }
 

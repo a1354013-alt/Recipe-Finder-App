@@ -34,7 +34,9 @@ export default function RecipeDetail() {
         const details = await getRecipeDetails(recipeId);
         setRecipe(details);
       } catch (error) {
-        console.error('Error fetching recipe details:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching recipe details:', error);
+        }
       } finally {
         setLoading(false);
       }

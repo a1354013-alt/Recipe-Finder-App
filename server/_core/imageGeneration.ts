@@ -17,6 +17,7 @@
  */
 import { storagePut } from "server/storage";
 import { ENV } from "./env";
+import { httpFetch } from "./http";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -50,7 +51,7 @@ export async function generateImage(
     baseUrl
   ).toString();
 
-  const response = await fetch(fullUrl, {
+  const response = await httpFetch<any>(fullUrl, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -64,14 +65,7 @@ export async function generateImage(
     }),
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
-  }
-
-  const result = (await response.json()) as {
+  const result = response.data as {
     image: {
       b64Json: string;
       mimeType: string;

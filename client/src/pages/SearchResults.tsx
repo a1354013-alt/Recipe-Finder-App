@@ -48,7 +48,9 @@ export default function SearchResults() {
         setResults(response.results);
         setTotalResults(response.totalResults);
       } catch (error) {
-        console.error('Error searching recipes:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error searching recipes:', error);
+        }
       } finally {
         setLoading(false);
       }
@@ -71,7 +73,9 @@ export default function SearchResults() {
       setResults((prev) => [...prev, ...response.results]);
       setCurrentPage(currentPage + 1);
     } catch (error) {
-      console.error('Error loading more results:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading more results:', error);
+      }
     }
   };
 

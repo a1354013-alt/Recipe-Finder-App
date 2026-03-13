@@ -3,6 +3,11 @@
  * 
  * Upload food images and get AI-powered ingredient recognition
  * and recipe recommendations
+ * 
+ * 安全特性：
+ * - 未登入自動導流到首頁
+ * - 圖片上傳 DoS 限制（8MB base64 上限）
+ * - CSRF 驗證（client 自動帶 x-csrf-token）
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -14,6 +19,7 @@ import Navigation from '@/components/Navigation';
 import RecipeCard from '@/components/RecipeCard';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 interface RecognizedIngredient {
   name: string;
@@ -31,7 +37,9 @@ interface RecommendedRecipe {
 }
 
 export default function AIRecognition() {
+  // All hooks must be called before any conditional returns
   const [, setLocation] = useLocation();
+  const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [recognizedIngredients, setRecognizedIngredients] = useState<RecognizedIngredient[]>([]);
@@ -44,31 +52,53 @@ export default function AIRecognition() {
   const getConfigQuery = trpc.ai.getConfig.useQuery();
   const [aiProvider, setAiProvider] = useState<'manus' | 'ollama'>('manus');
 
+  // useEffect must be called before any conditional returns
   useEffect(() => {
     if (getConfigQuery.data) {
       setAiProvider(getConfigQuery.data.provider);
     }
   }, [getConfigQuery.data]);
 
+  // Conditional returns after all hooks
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // 檢查檔案大小（8MB 上限）
+    const MAX_SIZE = 8 * 1024 * 1024; // 8MB
+    if (file.size > MAX_SIZE) {
+      toast.error('Image must be less than 8MB');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
       setSelectedImage(base64);
-      handleRecognizeIngredients(base64);
+      // Pass actual file type to handler
+      handleRecognizeIngredients(base64, file.type);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRecognizeIngredients = async (base64: string) => {
+  const handleRecognizeIngredients = async (base64: string, mimeType: string = 'image/jpeg') => {
     setIsProcessing(true);
     try {
       const result = await recognizeIngredientsMutation.mutateAsync({
         imageBase64: base64.split(',')[1] || base64,
-        mimeType: 'image/jpeg',
+        mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp',
       });
 
       setRecognizedIngredients(result.ingredients);
@@ -83,7 +113,10 @@ export default function AIRecognition() {
 
       setRecommendedRecipes(recipes.recipes);
     } catch (error) {
-      console.error('Error recognizing ingredients:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error recognizing ingredients:', error);
+      }
+      toast.error('Failed to recognize ingredients');
     } finally {
       setIsProcessing(false);
     }
@@ -138,7 +171,7 @@ export default function AIRecognition() {
               上傳食材圖片
             </CardTitle>
             <CardDescription>
-              支援 JPG、PNG 等常見圖片格式
+              支援 JPG、PNG 等常見圖片格式（最大 8MB）
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,7 +196,7 @@ export default function AIRecognition() {
                 <>
                   <Upload className="w-8 h-8 text-accent" />
                   <p className="font-lato text-foreground">點擊上傳圖片或拖放圖片到此處</p>
-                  <p className="text-sm text-muted-foreground font-lato">JPG、PNG 或其他圖片格式</p>
+                  <p className="text-sm text-muted-foreground font-lato">JPG、PNG 或其他圖片格式（最大 8MB）</p>
                 </>
               )}
             </button>

@@ -8,6 +8,7 @@
  */
 
 import { ENV } from "./env";
+import { httpFetch } from "./http";
 
 // ============================================================================
 // Configuration
@@ -71,22 +72,12 @@ export async function makeRequest<T = unknown>(
     }
   });
 
-  const response = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+  const result = await httpFetch<T>(url.toString(), {
+    method: (options.method || "GET") as "GET" | "POST",
+    body: options.body,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
-    );
-  }
-
-  return (await response.json()) as T;
+  return result.data;
 }
 
 // ============================================================================

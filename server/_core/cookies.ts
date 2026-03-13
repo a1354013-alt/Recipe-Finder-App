@@ -1,48 +1,52 @@
 import type { CookieOptions, Request } from "express";
 
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
-
-function isIpAddress(host: string) {
-  // Basic IPv4 check and IPv6 presence detection.
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
-  return host.includes(":");
-}
-
-function isSecureRequest(req: Request) {
+/**
+ * 判斷請求是否為 HTTPS
+ * 支援：
+ * - req.protocol === "https"
+ * - x-forwarded-proto header（Proxy / Load Balancer）
+ * - x-forwarded-proto 可能為逗號分隔的多個值，取第一個
+ */
+function isSecureRequest(req: Request): boolean {
+  // 直接 HTTPS 連接
   if (req.protocol === "https") return true;
 
+  // 檢查 x-forwarded-proto header（Proxy / Load Balancer）
   const forwardedProto = req.headers["x-forwarded-proto"];
   if (!forwardedProto) return false;
 
+  // 處理陣列或字串
   const protoList = Array.isArray(forwardedProto)
     ? forwardedProto
     : forwardedProto.split(",");
 
-  return protoList.some(proto => proto.trim().toLowerCase() === "https");
+  // 取第一個值，去除空白並轉小寫
+  const firstProto = protoList[0]?.trim().toLowerCase();
+  return firstProto === "https";
 }
 
+/**
+ * 取得 Session Cookie 選項
+ * 
+ * 邏輯：
+ * - 開發環境（非 HTTPS）：sameSite: "lax", secure: false
+ * - 生產環境（HTTPS）：sameSite: "none", secure: true
+ * - 禁止出現 sameSite=none 但 secure=false 的組合
+ * 
+ * @param req Express Request 物件
+ * @returns Cookie 選項
+ */
 export function getSessionCookieOptions(
   req: Request
-): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  // const hostname = req.hostname;
-  // const shouldSetDomain =
-  //   hostname &&
-  //   !LOCAL_HOSTS.has(hostname) &&
-  //   !isIpAddress(hostname) &&
-  //   hostname !== "127.0.0.1" &&
-  //   hostname !== "::1";
-
-  // const domain =
-  //   shouldSetDomain && !hostname.startsWith(".")
-  //     ? `.${hostname}`
-  //     : shouldSetDomain
-  //       ? hostname
-  //       : undefined;
+): Pick<CookieOptions, "httpOnly" | "path" | "sameSite" | "secure"> {
+  const isSecure = isSecureRequest(req);
 
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // 開發環境使用 lax，生產環境使用 none
+    sameSite: isSecure ? "none" : "lax",
+    // 只有在 HTTPS 時才設定 secure: true
+    secure: isSecure,
   };
 }

@@ -96,7 +96,9 @@ export async function searchRecipes(
       number,
     };
   } catch (error) {
-    console.error('Error searching recipes:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error searching recipes:', error);
+    }
     return { results: [], totalResults: 0, offset, number };
   }
 }
@@ -110,7 +112,9 @@ export async function getRecipeDetails(recipeId: number): Promise<RecipeDetails 
     const mockRecipe = generateMockRecipeDetails(recipeId);
     return mockRecipe;
   } catch (error) {
-    console.error('Error fetching recipe details:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching recipe details:', error);
+    }
     return null;
   }
 }
@@ -122,7 +126,9 @@ export async function getRandomRecipes(number: number = 12): Promise<Recipe[]> {
   try {
     return generateMockRecipes('random', number);
   } catch (error) {
-    console.error('Error fetching random recipes:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching random recipes:', error);
+    }
     return [];
   }
 }
@@ -137,7 +143,9 @@ export async function getRecipesByCuisine(
   try {
     return generateMockRecipes(cuisine, number);
   } catch (error) {
-    console.error('Error fetching recipes by cuisine:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching recipes by cuisine:', error);
+    }
     return [];
   }
 }
@@ -149,7 +157,9 @@ export async function getRecipesByDiet(diet: string, number: number = 12): Promi
   try {
     return generateMockRecipes(diet, number);
   } catch (error) {
-    console.error('Error fetching recipes by diet:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error fetching recipes by diet:', error);
+    }
     return [];
   }
 }

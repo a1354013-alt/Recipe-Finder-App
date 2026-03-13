@@ -1,4 +1,5 @@
 import { ENV } from "./env";
+import { httpFetch } from "./http";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
 
@@ -312,21 +313,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const result = await httpFetch<InvokeResult>(resolveApiUrl(), {
     method: "POST",
     headers: {
-      "content-type": "application/json",
       authorization: `Bearer ${ENV.forgeApiKey}`,
     },
-    body: JSON.stringify(payload),
+    body: payload,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
-  }
-
-  return (await response.json()) as InvokeResult;
+  return result.data;
 }

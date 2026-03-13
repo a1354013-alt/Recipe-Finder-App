@@ -6,11 +6,22 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
+/**
+ * 設定 Vite 開發伺服器
+ * 
+ * 注意：
+ * - allowedHosts: true 只在 development 設定
+ * - Production 環境不設定 allowedHosts，避免 Host header 風險
+ */
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true as const,
+    // 只在 development 環境設定 allowedHosts
+    // Production 環境不設定，避免行為不可控
+    ...(process.env.NODE_ENV === "development" && {
+      allowedHosts: true as const,
+    }),
   };
 
   const vite = await createViteServer({
@@ -48,14 +59,14 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-      : path.resolve(import.meta.dirname, "public");
+  // Production: dist/public（由 vite.config.ts 輸出）
+  // Development: 實際不會走到這裡（dev 用 setupVite），但為了安全也指向 dist/public
+  const distPath = path.resolve(import.meta.dirname, "../..", "dist", "public");
+  
   if (!fs.existsSync(distPath)) {
-    console.error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
-    );
+    const errorMsg = `Could not find the build directory: ${distPath}, make sure to build the client first`;
+    // 由上層 startServer() 統一處理錯誤，避免在中間件直接 process.exit
+    throw new Error(errorMsg);
   }
 
   app.use(express.static(distPath));

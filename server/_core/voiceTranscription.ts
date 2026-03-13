@@ -26,6 +26,7 @@
  * ```
  */
 import { ENV } from "./env";
+import { httpFetch } from "./http";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -152,26 +153,17 @@ export async function transcribeAudio(
       baseUrl
     ).toString();
 
-    const response = await fetch(fullUrl, {
+    const result = await httpFetch<WhisperResponse>(fullUrl, {
       method: "POST",
       headers: {
         authorization: `Bearer ${ENV.forgeApiKey}`,
         "Accept-Encoding": "identity",
       },
-      body: formData,
+      body: formData as any,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      return {
-        error: "Transcription service request failed",
-        code: "TRANSCRIPTION_FAILED",
-        details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`
-      };
-    }
-
     // Step 5: Parse and return the transcription result
-    const whisperResponse = await response.json() as WhisperResponse;
+    const whisperResponse = result.data;
     
     // Validate response structure
     if (!whisperResponse.text || typeof whisperResponse.text !== 'string') {

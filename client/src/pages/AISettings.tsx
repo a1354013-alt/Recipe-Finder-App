@@ -14,11 +14,14 @@ import { Loader2, Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 type AIProvider = 'manus' | 'ollama';
 
 export default function AISettings() {
+  // All hooks must be called before any conditional returns
   const [, setLocation] = useLocation();
+  const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
   const [provider, setProvider] = useState<AIProvider>('manus');
   const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama2');
@@ -31,7 +34,7 @@ export default function AISettings() {
   const setOllamaConfigMutation = trpc.ai.setOllamaConfig.useMutation();
   const testConnectionMutation = trpc.ai.testOllamaConnection.useMutation();
 
-  // Load current configuration
+  // useEffect must be called before any conditional returns
   useEffect(() => {
     if (getConfigQuery.data) {
       setProvider(getConfigQuery.data.provider);
@@ -44,9 +47,25 @@ export default function AISettings() {
     }
   }, [getConfigQuery.data]);
 
+  // Conditional returns after all hooks
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const handleSearch = (query: string) => {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
   };
+
+  // 檢查是否為管理員（setProvider / setOllamaConfig 需要管理員權限）
+  // 若非管理員，會在 mutation 時收到 403 FORBIDDEN
 
   const handleTestConnection = async () => {
     setIsTestingConnection(true);

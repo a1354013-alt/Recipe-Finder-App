@@ -6,6 +6,7 @@ import RecipeDetail from "@/pages/RecipeDetail";
 import SearchResults from "@/pages/SearchResults";
 import Favorites from "@/pages/Favorites";
 import AIRecognition from "@/pages/AIRecognition";
+import AISettings from "@/pages/AISettings";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -20,6 +21,7 @@ function Router() {
       <Route path={"/search"} component={SearchResults} />
       <Route path={"/favorites"} component={Favorites} />
       <Route path={"/ai-recognition"} component={AIRecognition} />
+      <Route path={"/ai-settings"} component={AISettings} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

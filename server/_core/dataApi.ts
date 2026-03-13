@@ -5,6 +5,7 @@
  *   })
  */
 import { ENV } from "./env";
+import { httpFetch } from "./http";
 
 export type DataApiCallOptions = {
   query?: Record<string, unknown>;
@@ -28,7 +29,7 @@ export async function callDataApi(
   const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
   const fullUrl = new URL("webdevtoken.v1.WebDevService/CallApi", baseUrl).toString();
 
-  const response = await fetch(fullUrl, {
+  const result = await httpFetch<unknown>(fullUrl, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -45,14 +46,7 @@ export async function callDataApi(
     }),
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Data API request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
-  }
-
-  const payload = await response.json().catch(() => ({}));
+  const payload = result.data;
   if (payload && typeof payload === "object" && "jsonData" in payload) {
     try {
       return JSON.parse((payload as Record<string, string>).jsonData ?? "{}");

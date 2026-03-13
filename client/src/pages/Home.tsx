@@ -16,9 +16,6 @@ import { Recipe, getRandomRecipes, getRecipesByCuisine } from '@/lib/recipes';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading: authLoading, error, isAuthenticated, logout } = useAuth();
 
   const [, setLocation] = useLocation();
   const [popularRecipes, setPopularRecipes] = useState<Recipe[]>([]);
@@ -39,7 +36,9 @@ export default function Home() {
         setItalianRecipes(italian);
         setAsianRecipes(asian);
       } catch (error) {
-        console.error('Error fetching recipes:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching recipes:', error);
+        }
       } finally {
         setLoading(false);
       }
@@ -52,7 +51,7 @@ export default function Home() {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
   };
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation onSearch={handleSearch} />
