@@ -65,8 +65,8 @@ const queryClient = new QueryClient({
 function handleTRPCError(error: unknown, context: string) {
   if (!(error instanceof TRPCClientError)) return;
 
-  // 提取 requestId
-  const requestId = (error.meta as any)?.response?.headers?.get?.("x-request-id");
+  // 提取 requestId：優先讀 error.data?.requestId，fallback 到 header
+  const requestId = error.data?.requestId || (error.meta as any)?.response?.headers?.get?.("x-request-id");
   
   // 檢查是否為認證錯誤
   const isAuthError = error.data?.code === "UNAUTHORIZED" || error.data?.code === "FORBIDDEN";

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
@@ -254,7 +254,7 @@ export async function removeFavorite(userId: number, recipeId: number) {
 
   try {
     await db.delete(favorites).where(
-      eq(favorites.userId, userId) && eq(favorites.recipeId, recipeId)
+      and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId))
     );
     logger.info("[DB] Favorite removed", "Recipe removed from favorites", { userId, recipeId });
   } catch (error) {
@@ -285,7 +285,7 @@ export async function isFavorited(userId: number, recipeId: number): Promise<boo
 
   try {
     const result = await db.select().from(favorites).where(
-      eq(favorites.userId, userId) && eq(favorites.recipeId, recipeId)
+      and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId))
     ).limit(1);
     return result.length > 0;
   } catch (error) {
@@ -423,7 +423,7 @@ export async function getUserAIRecognitionHistory(userId: number, limit: number 
   try {
     const result = await db.select().from(aiRecognitionHistory)
       .where(eq(aiRecognitionHistory.userId, userId))
-      .orderBy((t: any) => t.createdAt)
+      .orderBy(desc(aiRecognitionHistory.createdAt))
       .limit(limit);
     
     logger.info("[DB] AI recognition history retrieved", "History fetched", { userId, count: result.length });

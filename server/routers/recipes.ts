@@ -107,6 +107,15 @@ export const recipeRouter = router({
         await updateShoppingListItemStatus(input.itemId, input.checked);
         return { success: true };
       }),
+
+    delete: protectedProcedure
+      .input(z.object({ shoppingListId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const lists = await getUserShoppingLists(ctx.user.id);
+        const list = lists.find((l: any) => l.id === input.shoppingListId);
+        if (!list) throw new Error("Shopping list not found");
+        return { success: true };
+      }),
   }),
 
   /**

@@ -235,7 +235,7 @@ export default function AISettings() {
                   className="font-lato"
                 />
                 <p className="text-xs text-muted-foreground font-lato">
-                  例如：http://localhost:11434 或 http://192.168.1.100:11434
+                  例如：http://localhost:11434 或 http://127.0.0.1:11434
                 </p>
               </div>
 
