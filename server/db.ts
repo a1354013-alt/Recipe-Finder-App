@@ -335,6 +335,51 @@ export async function getUserShoppingLists(userId: number) {
   }
 }
 
+/**
+ * Get shopping list by ID and verify ownership
+ */
+export async function getShoppingListByIdForUser(userId: number, shoppingListId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingLists } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select().from(shoppingLists)
+      .where(and(eq(shoppingLists.id, shoppingListId), eq(shoppingLists.userId, userId)))
+      .limit(1);
+    
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get shopping list", { error: errorMessage, userId, shoppingListId });
+    throw error;
+  }
+}
+
+/**
+ * Get shopping list item by ID and verify ownership through list
+ */
+export async function getShoppingListItemByIdForUser(userId: number, itemId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingListItems, shoppingLists } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.select({
+      item: shoppingListItems,
+      list: shoppingLists,
+    })
+      .from(shoppingListItems)
+      .innerJoin(shoppingLists, eq(shoppingListItems.shoppingListId, shoppingLists.id))
+      .where(and(eq(shoppingListItems.id, itemId), eq(shoppingLists.userId, userId)))
+      .limit(1);
+    
+    return result.length > 0 ? result[0].item : null;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to get shopping list item", { error: errorMessage, userId, itemId });
+    throw error;
+  }
+}
+
 export async function addShoppingListItem(shoppingListId: number, ingredient: string, quantity?: string, unit?: string) {
   const db = await getDbOrThrow();
   const { shoppingListItems } = await import("../drizzle/schema");
@@ -431,6 +476,32 @@ export async function getUserAIRecognitionHistory(userId: number, limit: number 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[DB] Failed to get AI recognition history", { error: errorMessage, userId });
+    throw error;
+  }
+}
+
+export async function deleteAIRecognitionHistory(userId: number, historyId: number) {
+  const db = await getDbOrThrow();
+  const { aiRecognitionHistory } = await import("../drizzle/schema");
+
+  try {
+    // Verify ownership before deleting
+    const record = await db.select().from(aiRecognitionHistory)
+      .where(and(eq(aiRecognitionHistory.id, historyId), eq(aiRecognitionHistory.userId, userId)))
+      .limit(1);
+    
+    if (record.length === 0) {
+      logger.warn("[DB] AI history record not found or unauthorized", "Attempted to delete non-existent record", { userId, historyId });
+      throw new Error("Record not found or unauthorized");
+    }
+
+    await db.delete(aiRecognitionHistory)
+      .where(and(eq(aiRecognitionHistory.id, historyId), eq(aiRecognitionHistory.userId, userId)));
+    
+    logger.info("[DB] AI recognition history deleted", "History record deleted", { userId, historyId });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to delete AI recognition history", { error: errorMessage, userId, historyId });
     throw error;
   }
 }

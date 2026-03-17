@@ -235,7 +235,7 @@ export default function AISettings() {
                   className="font-lato"
                 />
                 <p className="text-xs text-muted-foreground font-lato">
-                  例如：http://localhost:11434 或 http://127.0.0.1:11434
+                  本地 Ollama 服務地址。支援：http://localhost:11434 或 http://127.0.0.1:11434
                 </p>
               </div>
 

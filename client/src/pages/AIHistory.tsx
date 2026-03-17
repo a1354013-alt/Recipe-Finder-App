@@ -5,6 +5,7 @@
  * - Images uploaded
  * - Recognized ingredients
  * - Recommended recipes
+ * - Delete history items
  */
 
 import { useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ import { trpc } from '@/lib/trpc';
 import { Loader2, Trash2, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 interface HistoryItem {
   id: number;
@@ -27,8 +29,19 @@ export default function AIHistory() {
   const [, setLocation] = useLocation();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const utils = trpc.useUtils();
 
   const historyQuery = trpc.recipe.aiHistory.list.useQuery({ limit: 50 });
+
+  const deleteMutation = trpc.recipe.aiHistory.delete.useMutation({
+    onSuccess: () => {
+      toast.success('History item deleted');
+      utils.recipe.aiHistory.list.invalidate();
+    },
+    onError: () => {
+      toast.error('Failed to delete history item');
+    },
+  });
 
   useEffect(() => {
     if (historyQuery.data) {
@@ -44,6 +57,12 @@ export default function AIHistory() {
 
   const handleSearch = (query: string) => {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
+  };
+
+  const handleDelete = (historyId: number) => {
+    if (confirm('Delete this history item?')) {
+      deleteMutation.mutate({ historyId });
+    }
   };
 
   if (loading || historyQuery.isLoading) {
@@ -145,8 +164,18 @@ export default function AIHistory() {
                   >
                     Search Recipes
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive">
-                    <Trash2 className="w-4 h-4" />
+                  <Button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleteMutation.isPending}
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </Card>

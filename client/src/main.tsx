@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { trpc } from './lib/trpc'
 import './index.css'
+import { toast } from 'sonner';
 
 /**
  * 自訂 retry 邏輯：
@@ -58,9 +59,9 @@ const queryClient = new QueryClient({
 
 /**
  * 全域 API 錯誤處理
- * - 顯示 requestId 便於後端追蹤
- * - UNAUTHORIZED 不自動重試
- * - 其他錯誤輸出到 console
+ * - 優先讀 error.data?.requestId
+ * - UNAUTHORIZED 顯示登入提示
+ * - 一般錯誤顯示 toast 並輸出 console
  */
 function handleTRPCError(error: unknown, context: string) {
   if (!(error instanceof TRPCClientError)) return;
@@ -71,33 +72,47 @@ function handleTRPCError(error: unknown, context: string) {
   // 檢查是否為認證錯誤
   const isAuthError = error.data?.code === "UNAUTHORIZED" || error.data?.code === "FORBIDDEN";
   
-  // 輸出錯誤
+  // 構建錯誤訊息
+  let errorMessage = error.message || 'An error occurred';
   if (requestId) {
-    console.error(`[${context}] requestId: ${requestId}`, {
-      code: error.data?.code,
-      message: error.message,
-      isAuthError,
-    });
+    errorMessage = `${errorMessage} (ID: ${requestId})`;
+  }
+
+  // 根據錯誤類型顯示提示
+  if (isAuthError) {
+    toast.error('Please sign in to continue');
   } else {
+    toast.error(errorMessage);
+  }
+
+  // 開發環境輸出完整錯誤資訊
+  if (import.meta.env.DEV) {
     console.error(`[${context}]`, {
       code: error.data?.code,
       message: error.message,
+      requestId,
       isAuthError,
     });
   }
 }
 
+/**
+ * Query 全域錯誤訂閱
+ */
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    handleTRPCError(error, "API Query Error");
+    handleTRPCError(error, "Query Error");
   }
 });
 
+/**
+ * Mutation 全域錯誤訂閱
+ */
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
-    handleTRPCError(error, "API Mutation Error");
+    handleTRPCError(error, "Mutation Error");
   }
 });
 

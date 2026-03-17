@@ -6,6 +6,7 @@
  * - Detailed ingredient list
  * - Step-by-step cooking instructions
  * - Nutrition information
+ * - Complete loading/error/empty state handling
  */
 
 import { useEffect, useState } from 'react';
@@ -14,7 +15,7 @@ import Navigation from '@/components/Navigation';
 import RatingReview from '@/components/RatingReview';
 import ShoppingListComponent from '@/components/ShoppingList';
 import { RecipeDetails, getRecipeDetails } from '@/lib/recipes';
-import { Loader2, ArrowLeft, Clock, Users, Flame } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, Users, Flame, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function RecipeDetail() {
@@ -24,18 +25,28 @@ export default function RecipeDetail() {
 
   const [recipe, setRecipe] = useState<RecipeDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!recipeId) return;
 
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const details = await getRecipeDetails(recipeId);
-        setRecipe(details);
-      } catch (error) {
+        if (!details) {
+          setError('Recipe not found');
+          setRecipe(null);
+        } else {
+          setRecipe(details);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load recipe';
+        setError(errorMessage);
+        setRecipe(null);
         if (import.meta.env.DEV) {
-          console.error('Error fetching recipe details:', error);
+          console.error('Error fetching recipe details:', err);
         }
       } finally {
         setLoading(false);
@@ -47,6 +58,32 @@ export default function RecipeDetail() {
 
   const handleSearch = (query: string) => {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    if (!recipeId) return;
+
+    const fetchData = async () => {
+      try {
+        const details = await getRecipeDetails(recipeId);
+        if (!details) {
+          setError('Recipe not found');
+          setRecipe(null);
+        } else {
+          setRecipe(details);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load recipe';
+        setError(errorMessage);
+        setRecipe(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   };
 
   if (!match) return null;
@@ -65,16 +102,24 @@ export default function RecipeDetail() {
     );
   }
 
-  if (!recipe) {
+  if (error || !recipe) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation onSearch={handleSearch} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground font-lato text-lg mb-4">Recipe not found</p>
-            <Button onClick={() => setLocation('/')} variant="outline">
-              Back to Home
-            </Button>
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <p className="text-destructive font-lato text-lg mb-4">
+              {error || 'Recipe not found'}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={handleRetry} variant="outline">
+                Retry
+              </Button>
+              <Button onClick={() => setLocation('/')} variant="outline">
+                Back to Home
+              </Button>
+            </div>
           </div>
         </div>
       </div>
