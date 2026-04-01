@@ -163,27 +163,30 @@ export default function Favorites() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favorites.map((fav: any) => (
-                  <div key={fav.id} className="relative">
-                    <RecipeCard
-                      id={fav.recipeId}
-                      title={fav.recipeName}
-                      image={fav.recipeImage || '/images/recipe-placeholder.jpg'}
-                      readyInMinutes={0}
-                      servings={0}
-                      sourceUrl=""
-                    />
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-2 right-2"
-                      onClick={() => removeFavoriteMutation.mutate({ recipeId: fav.recipeId })}
-                      disabled={removeFavoriteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                {favorites.map((fav: any) => {
+                  const recipe: Recipe = {
+                    id: fav.recipeId,
+                    title: fav.recipeName,
+                    image: fav.recipeImage || '/images/recipe-placeholder.jpg',
+                    readyInMinutes: 0,
+                    servings: 0,
+                    sourceUrl: '',
+                  };
+                  return (
+                    <div key={fav.id} className="relative">
+                      <RecipeCard recipe={recipe} />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-2 right-2"
+                        onClick={() => removeFavoriteMutation.mutate({ recipeId: fav.recipeId })}
+                        disabled={removeFavoriteMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

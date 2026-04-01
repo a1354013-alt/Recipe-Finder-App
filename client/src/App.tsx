@@ -5,6 +5,7 @@ import Home from "@/pages/Home";
 import RecipeDetail from "@/pages/RecipeDetail";
 import SearchResults from "@/pages/SearchResults";
 import Favorites from "@/pages/Favorites";
+import ShoppingListDetail from "@/pages/ShoppingListDetail";
 import AIRecognition from "@/pages/AIRecognition";
 import AISettings from "@/pages/AISettings";
 import AIHistory from "@/pages/AIHistory";
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/recipe/:id"} component={RecipeDetail} />
       <Route path={"/search"} component={SearchResults} />
       <Route path={"/favorites"} component={Favorites} />
+      <Route path={"/shopping-list/:id"} component={ShoppingListDetail} />
       <Route path={"/ai-recognition"} component={AIRecognition} />
       <Route path={"/ai-settings"} component={AISettings} />
       <Route path={"/ai-history"} component={AIHistory} />

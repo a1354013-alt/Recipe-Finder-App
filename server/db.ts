@@ -310,9 +310,10 @@ export async function createShoppingList(userId: number, name: string, descripti
       userId,
       name,
       description,
-    });
-    logger.info("[DB] Shopping list created", "New shopping list created", { userId, name });
-    return result;
+    }).returning();
+    const newList = result[0];
+    logger.info("[DB] Shopping list created", "New shopping list created", { userId, name, listId: newList?.id });
+    return newList;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[DB] Failed to create shopping list", { error: errorMessage, userId });
@@ -425,6 +426,24 @@ export async function updateShoppingListItemStatus(itemId: number, checked: bool
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[DB] Failed to update shopping list item", { error: errorMessage, itemId });
+    throw error;
+  }
+}
+
+/**
+ * Delete shopping list with ownership verification
+ */
+export async function deleteShoppingList(listId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingLists } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.delete(shoppingLists).where(eq(shoppingLists.id, listId));
+    logger.info("[DB] Shopping list deleted", "Shopping list deleted", { listId });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to delete shopping list", { error: errorMessage, listId });
     throw error;
   }
 }

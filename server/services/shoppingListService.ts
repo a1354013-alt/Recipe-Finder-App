@@ -16,6 +16,7 @@ import {
   updateShoppingListItemStatus,
   getShoppingListItems,
   getUserShoppingLists as dbGetUserShoppingLists,
+  deleteShoppingList,
 } from '../db';
 import { logger } from '../_core/logger';
 import { TRPCError } from '@trpc/server';
@@ -222,9 +223,6 @@ export async function updateItemStatus(
 
 /**
  * Delete shopping list with ownership verification
- * 
- * Note: deleteShoppingList is not yet implemented in db.ts
- * This is a placeholder for future implementation
  */
 export async function deleteList(
   userId: number,
@@ -247,8 +245,7 @@ export async function deleteList(
       { userId, listId, requestId }
     );
 
-    // TODO: Implement deleteShoppingList in db.ts
-    // await deleteShoppingList(listId);
+    await deleteShoppingList(listId);
 
     logger.info(
       '[ShoppingListService] Shopping list deleted',

@@ -24,7 +24,7 @@ import {
 import {
   getUserHistory,
   deleteHistory,
-} from "../services/aiHistoryService";
+} from '../services/aiHistoryService';
 
 export const recipeRouter = router({
   /**
@@ -154,8 +154,8 @@ export const recipeRouter = router({
   aiHistory: router({
     list: protectedProcedure
       .input(z.object({ limit: z.number().default(20) }))
-      .query(async ({ ctx }) => {
-        return await getUserHistory(ctx.user.id, ctx.requestId);
+      .query(async ({ ctx, input }) => {
+        return await getUserHistory(ctx.user.id, input.limit, ctx.requestId);
       }),
 
     add: protectedProcedure
@@ -177,7 +177,7 @@ export const recipeRouter = router({
       .input(z.object({ historyId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await deleteHistory(ctx.user.id, input.historyId, ctx.requestId);
-        return { success: true };
+        return { success: true, historyId: input.historyId };
       }),
   }),
 });

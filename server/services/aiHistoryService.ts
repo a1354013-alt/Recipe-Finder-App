@@ -18,21 +18,22 @@ import { TRPCError } from '@trpc/server';
  */
 export async function getUserHistory(
   userId: number,
+  limit?: number,
   requestId?: string
 ): Promise<any[]> {
   try {
     logger.info(
       '[AIHistoryService] Fetching user AI history',
-      `User ID: ${userId}`,
-      { userId, requestId }
+      `User ID: ${userId}, Limit: ${limit || 'default'}`,
+      { userId, limit, requestId }
     );
 
-    const history = await getUserAIRecognitionHistory(userId);
+    const history = await getUserAIRecognitionHistory(userId, limit);
 
     logger.info(
       '[AIHistoryService] User AI history fetched',
       `Found ${history.length} records`,
-      { userId, count: history.length, requestId }
+      { userId, count: history.length, limit, requestId }
     );
 
     return history;
@@ -72,7 +73,7 @@ export async function deleteHistory(
       });
     }
 
-    await deleteAIRecognitionHistory(historyId);
+    await deleteAIRecognitionHistory(userId, historyId);
 
     logger.info(
       '[AIHistoryService] AI history deleted',

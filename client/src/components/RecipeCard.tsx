@@ -70,8 +70,8 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           <div className="absolute top-3 left-3">
             <FavoriteButton
               recipeId={recipe.id}
-              title={recipe.title}
-              image={recipe.image}
+              recipeName={recipe.title}
+              recipeImage={recipe.image}
             />
           </div>
         </div>

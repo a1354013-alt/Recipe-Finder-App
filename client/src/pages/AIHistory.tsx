@@ -44,7 +44,10 @@ export default function AIHistory() {
   });
 
   useEffect(() => {
-    if (historyQuery.data) {
+    if (historyQuery.isError) {
+      toast.error('Failed to load history');
+      setLoading(false);
+    } else if (historyQuery.data) {
       const parsed = historyQuery.data.map((item: any) => ({
         ...item,
         recognizedIngredients: JSON.parse(item.recognizedIngredients),
@@ -53,7 +56,7 @@ export default function AIHistory() {
       setHistory(parsed);
       setLoading(false);
     }
-  }, [historyQuery.data]);
+  }, [historyQuery.data, historyQuery.isError]);
 
   const handleSearch = (query: string) => {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
@@ -73,6 +76,25 @@ export default function AIHistory() {
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-12 h-12 text-accent animate-spin" />
             <p className="text-muted-foreground font-lato">Loading history...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (historyQuery.isError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navigation onSearch={handleSearch} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-destructive font-lato text-lg">Failed to load history</p>
+            <Button
+              onClick={() => historyQuery.refetch()}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              Retry
+            </Button>
           </div>
         </div>
       </div>
