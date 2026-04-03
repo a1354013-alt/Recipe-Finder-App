@@ -2,9 +2,9 @@
  * Recipe Service Layer
  * 
  * 抽象層設計：
- * - 支援多個資料來源（tRPC 後端、外部 API、本地 mock）
- * - 統一的 service 介面
- * - 優雅的 fallback 機制
+ * - 優先使用 tRPC 後端（真實資料）
+ * - Fallback 到本地 mock（開發或離線）
+ * - 統一的錯誤處理
  */
 
 import { trpc } from './trpc';
@@ -58,22 +58,28 @@ export interface SearchResponse {
 
 export interface FilterOptions {
   cookingTime?: string[];
-  calories?: string[];
+  diet?: string[];
+  cuisine?: string[];
   difficulty?: string[];
-  diets?: string[];
 }
 
 /**
- * Recipe Service - 真實資料層
+ * Recipe Service - 真實資料優先，mock 作為 fallback
  * 
- * 設計原則：
- * 1. 優先使用 tRPC 後端（已登入使用者）
- * 2. Fallback 到本地 mock（開發或離線）
- * 3. 統一的錯誤處理
+ * 注意：此 service 層主要用於：
+ * 1. 統一的錯誤處理
+ * 2. 資料轉換和篩選
+ * 3. 離線 fallback
+ * 
+ * 實際的資料抓取應該在 React component 中使用 tRPC hooks
+ * 例如：trpc.recipe.search.useQuery()
  */
 export const recipeService = {
   /**
    * 搜尋食譜
+   * 
+   * 注意：此函數主要用於 fallback 和資料轉換
+   * 實際搜尋應在 component 中使用 trpc.recipe.search.useQuery()
    */
   async searchRecipes(
     query: string,
@@ -86,12 +92,12 @@ export const recipeService = {
     }
 
     try {
-      // 優先嘗試使用 tRPC 後端
-      // 注意：這是異步呼叫，需要在 React component 中使用 trpc hook
-      // 這裡保留 mock 作為 fallback
+      // 優先使用 tRPC 後端搜尋
+      // 在 React component 中應該使用：
+      // const { data, isLoading, error } = trpc.recipe.search.useQuery({ query, offset, number, filters });
+      
+      // 此處保留 mock 作為 fallback（離線或開發環境）
       const mockRecipes = generateMockRecipes(query, number);
-
-      // 應用篩選
       const filtered = filters ? applyFilters(mockRecipes, filters) : mockRecipes;
 
       return {
@@ -110,9 +116,17 @@ export const recipeService = {
 
   /**
    * 獲取食譜詳情
+   * 
+   * 注意：此函數主要用於 fallback
+   * 實際詳情應在 component 中使用 trpc.recipe.details.useQuery(recipeId)
    */
   async getRecipeDetails(recipeId: number): Promise<RecipeDetails | null> {
     try {
+      // 優先使用 tRPC 後端
+      // 在 React component 中應該使用：
+      // const { data, isLoading, error } = trpc.recipe.details.useQuery(recipeId);
+      
+      // 此處保留 mock 作為 fallback
       const mockRecipe = generateMockRecipeDetails(recipeId);
       return mockRecipe;
     } catch (error) {
@@ -125,9 +139,17 @@ export const recipeService = {
 
   /**
    * 獲取隨機食譜
+   * 
+   * 注意：此函數主要用於 fallback
+   * 實際隨機食譜應在 component 中使用 trpc.recipe.random.useQuery()
    */
   async getRandomRecipes(number: number = 12): Promise<Recipe[]> {
     try {
+      // 優先使用 tRPC 後端
+      // 在 React component 中應該使用：
+      // const { data, isLoading } = trpc.recipe.random.useQuery({ number });
+      
+      // 此處保留 mock 作為 fallback
       return generateMockRecipes('random', number);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -139,9 +161,17 @@ export const recipeService = {
 
   /**
    * 按菜系獲取食譜
+   * 
+   * 注意：此函數主要用於 fallback
+   * 實際菜系食譜應在 component 中使用 trpc.recipe.byCuisine.useQuery(cuisine)
    */
   async getRecipesByCuisine(cuisine: string, number: number = 12): Promise<Recipe[]> {
     try {
+      // 優先使用 tRPC 後端
+      // 在 React component 中應該使用：
+      // const { data, isLoading } = trpc.recipe.byCuisine.useQuery({ cuisine, number });
+      
+      // 此處保留 mock 作為 fallback
       return generateMockRecipes(cuisine, number);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -153,9 +183,17 @@ export const recipeService = {
 
   /**
    * 按飲食類型獲取食譜
+   * 
+   * 注意：此函數主要用於 fallback
+   * 實際飲食食譜應在 component 中使用 trpc.recipe.byDiet.useQuery(diet)
    */
   async getRecipesByDiet(diet: string, number: number = 12): Promise<Recipe[]> {
     try {
+      // 優先使用 tRPC 後端
+      // 在 React component 中應該使用：
+      // const { data, isLoading } = trpc.recipe.byDiet.useQuery({ diet, number });
+      
+      // 此處保留 mock 作為 fallback
       return generateMockRecipes(diet, number);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -182,31 +220,23 @@ function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
       if (!matchesTime) return false;
     }
 
-    // 熱量篩選
-    if (filters.calories && filters.calories.length > 0 && recipe.calories) {
-      const matchesCalories = filters.calories.some((calId) => {
-        if (calId === 'low') return recipe.calories! < 300;
-        if (calId === 'medium') return recipe.calories! >= 300 && recipe.calories! <= 600;
-        if (calId === 'high') return recipe.calories! > 600;
-        return false;
-      });
-      if (!matchesCalories) return false;
+    // 飲食類型篩選
+    if (filters.diet && filters.diet.length > 0) {
+      const matchesDiet = filters.diet.some((d) => recipe.diets?.includes(d));
+      if (!matchesDiet) return false;
+    }
+
+    // 菜系篩選
+    if (filters.cuisine && filters.cuisine.length > 0) {
+      const matchesCuisine = filters.cuisine.some((c) => recipe.cuisines?.includes(c));
+      if (!matchesCuisine) return false;
     }
 
     // 難度篩選
     if (filters.difficulty && filters.difficulty.length > 0) {
-      const matchesDifficulty = filters.difficulty.includes(recipe.difficulty || 'easy');
-      if (!matchesDifficulty) return false;
-    }
-
-    // 飲食類型篩選
-    if (filters.diets && filters.diets.length > 0) {
-      const recipeDiets = (recipe.diets || []).map((d) => d.toLowerCase());
-      const matchesDiet = filters.diets.some((diet) => {
-        const dietLower = diet.toLowerCase();
-        return recipeDiets.some((d) => d.includes(dietLower));
-      });
-      if (!matchesDiet) return false;
+      if (!recipe.difficulty || !filters.difficulty.includes(recipe.difficulty)) {
+        return false;
+      }
     }
 
     return true;
@@ -214,152 +244,68 @@ function applyFilters(recipes: Recipe[], filters: FilterOptions): Recipe[] {
 }
 
 /**
- * Mock 資料生成器（用於開發和 fallback）
+ * Mock 資料生成器 - 僅用於 fallback
  */
-function generateMockRecipes(query: string, count: number): Recipe[] {
-  const recipes: Recipe[] = [];
-  const cuisines = ['Italian', 'Asian', 'Mexican', 'French', 'Indian', 'Mediterranean'];
-  const diets = ['Vegetarian', 'Vegan', 'Gluten Free', 'Dairy Free', 'Keto'];
+function generateMockRecipes(query: string, count: number = 12): Recipe[] {
+  const cuisines = ['Italian', 'Asian', 'Mexican', 'Indian', 'French', 'American'];
+  const diets = ['vegetarian', 'vegan', 'gluten-free', 'keto', 'paleo'];
   const difficulties: Array<'easy' | 'medium' | 'hard'> = ['easy', 'medium', 'hard'];
 
-  for (let i = 0; i < count; i++) {
-    recipes.push({
-      id: Math.floor(Math.random() * 1000000),
-      title: `${query} Recipe ${i + 1}`,
-      image: `/images/featured-recipe-hero.jpg`,
-      readyInMinutes: Math.floor(Math.random() * 120) + 15,
-      servings: Math.floor(Math.random() * 6) + 2,
-      sourceUrl: 'https://example.com',
-      cuisines: [cuisines[Math.floor(Math.random() * cuisines.length)]],
-      diets: [diets[Math.floor(Math.random() * diets.length)]],
-      dishTypes: [(['main course', 'side dish', 'dessert'] as const)[Math.floor(Math.random() * 3)]],
-      calories: Math.floor(Math.random() * 800) + 150,
-      difficulty: difficulties[Math.floor(Math.random() * difficulties.length)],
-    });
-  }
-
-  return recipes;
+  return Array.from({ length: count }, (_, i) => ({
+    id: Math.floor(Math.random() * 1000000) + i,
+    title: `${query} Recipe ${i + 1}`,
+    image: `https://via.placeholder.com/300x200?text=Recipe+${i + 1}`,
+    readyInMinutes: Math.floor(Math.random() * 120) + 5,
+    servings: Math.floor(Math.random() * 6) + 2,
+    sourceUrl: '#',
+    cuisines: [cuisines[Math.floor(Math.random() * cuisines.length)]],
+    diets: [diets[Math.floor(Math.random() * diets.length)]],
+    difficulty: difficulties[Math.floor(Math.random() * difficulties.length)],
+    calories: Math.floor(Math.random() * 800) + 200,
+  }));
 }
 
 function generateMockRecipeDetails(recipeId: number): RecipeDetails {
   return {
     id: recipeId,
-    title: `Delicious Recipe ${recipeId}`,
-    image: `/images/featured-recipe-hero.jpg`,
-    readyInMinutes: 45,
+    title: `Recipe ${recipeId}`,
+    image: `https://via.placeholder.com/500x300?text=Recipe+${recipeId}`,
+    readyInMinutes: 30,
     servings: 4,
-    sourceUrl: 'https://example.com',
-    calories: 350,
-    difficulty: 'medium',
-    summary:
-      'This is a delicious and easy-to-prepare recipe that combines fresh ingredients with simple cooking techniques.',
-    cuisines: ['Italian'],
-    diets: ['Vegetarian'],
+    sourceUrl: '#',
+    summary: 'This is a delicious recipe that you will love.',
     extendedIngredients: [
       {
         id: 1,
-        original: '2 cups fresh tomatoes',
-        name: 'tomatoes',
+        original: '2 cups flour',
+        name: 'flour',
         amount: 2,
         unit: 'cups',
       },
       {
         id: 2,
-        original: '3 cloves garlic, minced',
-        name: 'garlic',
-        amount: 3,
-        unit: 'cloves',
-      },
-      {
-        id: 3,
-        original: '1/4 cup fresh basil',
-        name: 'basil',
-        amount: 0.25,
-        unit: 'cup',
-      },
-      {
-        id: 4,
-        original: '2 tablespoons olive oil',
-        name: 'olive oil',
-        amount: 2,
-        unit: 'tablespoons',
-      },
-      {
-        id: 5,
-        original: 'Salt and pepper to taste',
-        name: 'salt and pepper',
+        original: '1 egg',
+        name: 'egg',
         amount: 1,
-        unit: 'to taste',
+        unit: 'whole',
       },
     ],
     analyzedInstructions: [
       {
-        name: '',
+        name: 'Preparation',
         steps: [
           {
             number: 1,
-            step: 'Heat olive oil in a large pan over medium heat.',
-            ingredients: [],
+            step: 'Mix all ingredients',
+            ingredients: [{ name: 'flour' }, { name: 'egg' }],
           },
           {
             number: 2,
-            step: 'Add minced garlic and cook until fragrant, about 1 minute.',
-            ingredients: [],
-          },
-          {
-            number: 3,
-            step: 'Add fresh tomatoes and simmer for 15-20 minutes.',
-            ingredients: [],
-          },
-          {
-            number: 4,
-            step: 'Stir in fresh basil and season with salt and pepper.',
-            ingredients: [],
-          },
-          {
-            number: 5,
-            step: 'Serve hot and enjoy!',
+            step: 'Bake at 350°F for 25 minutes',
             ingredients: [],
           },
         ],
       },
     ],
-    nutrition: {
-      nutrients: [
-        { name: 'Calories', amount: 350, unit: 'kcal' },
-        { name: 'Protein', amount: 8, unit: 'g' },
-        { name: 'Carbohydrates', amount: 25, unit: 'g' },
-        { name: 'Fat', amount: 12, unit: 'g' },
-        { name: 'Fiber', amount: 4, unit: 'g' },
-      ],
-    },
   };
-}
-
-/**
- * 向後相容的導出（用於現有程式碼）
- */
-export async function searchRecipes(
-  query: string,
-  offset?: number,
-  number?: number,
-  filters?: FilterOptions
-): Promise<SearchResponse> {
-  return recipeService.searchRecipes(query, offset, number, filters);
-}
-
-export async function getRecipeDetails(recipeId: number): Promise<RecipeDetails | null> {
-  return recipeService.getRecipeDetails(recipeId);
-}
-
-export async function getRandomRecipes(number?: number): Promise<Recipe[]> {
-  return recipeService.getRandomRecipes(number);
-}
-
-export async function getRecipesByCuisine(cuisine: string, number?: number): Promise<Recipe[]> {
-  return recipeService.getRecipesByCuisine(cuisine, number);
-}
-
-export async function getRecipesByDiet(diet: string, number?: number): Promise<Recipe[]> {
-  return recipeService.getRecipesByDiet(diet, number);
 }

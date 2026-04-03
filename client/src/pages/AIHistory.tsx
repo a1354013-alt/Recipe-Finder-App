@@ -48,11 +48,32 @@ export default function AIHistory() {
       toast.error('Failed to load history');
       setLoading(false);
     } else if (historyQuery.data) {
-      const parsed = historyQuery.data.map((item: any) => ({
-        ...item,
-        recognizedIngredients: JSON.parse(item.recognizedIngredients),
-        recommendedRecipes: item.recommendedRecipes ? JSON.parse(item.recommendedRecipes) : [],
-      }));
+      const parsed = historyQuery.data.map((item: any) => {
+        try {
+          return {
+            ...item,
+            recognizedIngredients: typeof item.recognizedIngredients === 'string'
+              ? JSON.parse(item.recognizedIngredients)
+              : Array.isArray(item.recognizedIngredients)
+                ? item.recognizedIngredients
+                : [],
+            recommendedRecipes: item.recommendedRecipes
+              ? (typeof item.recommendedRecipes === 'string'
+                ? JSON.parse(item.recommendedRecipes)
+                : Array.isArray(item.recommendedRecipes)
+                  ? item.recommendedRecipes
+                  : [])
+              : [],
+          };
+        } catch (error) {
+          console.error('Failed to parse history item:', error, item);
+          return {
+            ...item,
+            recognizedIngredients: [],
+            recommendedRecipes: [],
+          };
+        }
+      });
       setHistory(parsed);
       setLoading(false);
     }

@@ -55,7 +55,9 @@ export const favorites = mysqlTable("favorites", {
   recipeName: varchar("recipeName", { length: 255 }).notNull(),
   recipeImage: text("recipeImage"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userRecipeUnique: uniqueIndex('favorites_user_recipe_unique').on(table.userId, table.recipeId),
+}));
 
 export type Favorite = typeof favorites.$inferSelect;
 export type InsertFavorite = typeof favorites.$inferInsert;

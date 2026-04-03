@@ -17,6 +17,7 @@ import {
   getShoppingListItems,
   getUserShoppingLists as dbGetUserShoppingLists,
   deleteShoppingList,
+  deleteShoppingListItem as dbDeleteShoppingListItem,
 } from '../db';
 import { logger } from '../_core/logger';
 import { TRPCError } from '@trpc/server';
@@ -27,21 +28,22 @@ import { TRPCError } from '@trpc/server';
 export async function createNewShoppingList(
   userId: number,
   name: string,
+  description?: string,
   requestId?: string
 ): Promise<any> {
   try {
     logger.info(
       '[ShoppingListService] Creating shopping list',
-      `Name: ${name}`,
-      { userId, name, requestId }
+      `Name: ${name}, Description: ${description || 'none'}`,
+      { userId, name, description, requestId }
     );
 
-    const list = await createShoppingList(userId, name);
+    const list = await createShoppingList(userId, name, description);
 
     logger.info(
       '[ShoppingListService] Shopping list created',
       `List ID: ${list.id}`,
-      { userId, listId: list.id, requestId }
+      { userId, listId: list.id, name, description, requestId }
     );
 
     return list;
@@ -257,6 +259,47 @@ export async function deleteList(
     logger.error(
       '[ShoppingListService] Failed to delete shopping list',
       { error: errorMessage, userId, listId, requestId }
+    );
+    throw error;
+  }
+}
+
+/**
+ * Delete shopping list item with ownership verification
+ */
+export async function deleteShoppingListItem(
+  userId: number,
+  itemId: number,
+  requestId?: string
+): Promise<void> {
+  try {
+    // Verify ownership through item
+    const item = await getShoppingListItemByIdForUser(userId, itemId);
+    if (!item) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Access denied',
+      });
+    }
+
+    logger.info(
+      '[ShoppingListService] Deleting shopping list item',
+      `Item ID: ${itemId}`,
+      { userId, itemId, requestId }
+    );
+
+    await dbDeleteShoppingListItem(itemId);
+
+    logger.info(
+      '[ShoppingListService] Shopping list item deleted',
+      `Item ID: ${itemId}`,
+      { userId, itemId, requestId }
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(
+      '[ShoppingListService] Failed to delete shopping list item',
+      { error: errorMessage, userId, itemId, requestId }
     );
     throw error;
   }

@@ -1,19 +1,15 @@
 /**
  * Local Storage Service
  * 
- * Manages user preferences and data persistence:
- * - Favorite recipes
- * - Ratings and reviews
- * - Shopping lists
+ * Manages ONLY UI preferences and non-critical data:
  * - Theme preferences
+ * - Ratings and reviews (local only)
+ * 
+ * IMPORTANT: Favorites and Shopping Lists are now backend-persisted via tRPC
+ * Do NOT use localStorage for product data - use tRPC instead:
+ * - Favorites: trpc.recipe.favorites.*
+ * - Shopping Lists: trpc.recipe.shoppingLists.*
  */
-
-export interface FavoriteRecipe {
-  id: number;
-  title: string;
-  image: string;
-  addedAt: number;
-}
 
 export interface RecipeRating {
   recipeId: number;
@@ -22,77 +18,16 @@ export interface RecipeRating {
   ratedAt: number;
 }
 
-export interface ShoppingListItem {
-  id: string;
-  ingredient: string;
-  amount: number;
-  unit: string;
-  recipeId: number;
-  recipeName: string;
-  checked: boolean;
-}
-
-export interface ShoppingList {
-  id: string;
-  items: ShoppingListItem[];
-  createdAt: number;
-  updatedAt: number;
-}
-
 const STORAGE_KEYS = {
-  FAVORITES: 'recipe_favorites',
   RATINGS: 'recipe_ratings',
-  SHOPPING_LISTS: 'recipe_shopping_lists',
   THEME: 'recipe_theme',
 };
 
 /**
- * Favorite Recipes Management
- */
-export const FavoritesStorage = {
-  get(): FavoriteRecipe[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.FAVORITES);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  add(recipe: Omit<FavoriteRecipe, 'addedAt'>): void {
-    const favorites = this.get();
-    const exists = favorites.some((f) => f.id === recipe.id);
-    if (!exists) {
-      favorites.push({
-        ...recipe,
-        addedAt: Date.now(),
-      });
-      localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
-    }
-  },
-
-  remove(recipeId: number): void {
-    const favorites = this.get().filter((f) => f.id !== recipeId);
-    localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(favorites));
-  },
-
-  isFavorite(recipeId: number): boolean {
-    return this.get().some((f) => f.id === recipeId);
-  },
-
-  toggle(recipe: Omit<FavoriteRecipe, 'addedAt'>): boolean {
-    if (this.isFavorite(recipe.id)) {
-      this.remove(recipe.id);
-      return false;
-    } else {
-      this.add(recipe);
-      return true;
-    }
-  },
-};
-
-/**
- * Recipe Ratings and Reviews Management
+ * Recipe Ratings and Reviews Management (Local Only)
+ * 
+ * Note: This is for local user ratings/comments
+ * Server-side ratings should be implemented separately if needed
  */
 export const RatingsStorage = {
   get(recipeId: number): RecipeRating | null {
@@ -132,94 +67,6 @@ export const RatingsStorage = {
 };
 
 /**
- * Shopping List Management
- */
-export const ShoppingListStorage = {
-  getAll(): ShoppingList[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.SHOPPING_LISTS);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  },
-
-  get(listId: string): ShoppingList | null {
-    return this.getAll().find((l) => l.id === listId) || null;
-  },
-
-  create(items: Omit<ShoppingListItem, 'id'>[]): ShoppingList {
-    const lists = this.getAll();
-    const newList: ShoppingList = {
-      id: `list_${Date.now()}`,
-      items: items.map((item, index) => ({
-        ...item,
-        id: `item_${Date.now()}_${index}`,
-      })),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    lists.push(newList);
-    localStorage.setItem(STORAGE_KEYS.SHOPPING_LISTS, JSON.stringify(lists));
-    return newList;
-  },
-
-  update(listId: string, items: ShoppingListItem[]): void {
-    const lists = this.getAll();
-    const list = lists.find((l) => l.id === listId);
-    if (list) {
-      list.items = items;
-      list.updatedAt = Date.now();
-      localStorage.setItem(STORAGE_KEYS.SHOPPING_LISTS, JSON.stringify(lists));
-    }
-  },
-
-  toggleItem(listId: string, itemId: string): void {
-    const lists = this.getAll();
-    const list = lists.find((l) => l.id === listId);
-    if (list) {
-      const item = list.items.find((i) => i.id === itemId);
-      if (item) {
-        item.checked = !item.checked;
-        list.updatedAt = Date.now();
-        localStorage.setItem(STORAGE_KEYS.SHOPPING_LISTS, JSON.stringify(lists));
-      }
-    }
-  },
-
-  delete(listId: string): void {
-    const lists = this.getAll().filter((l) => l.id !== listId);
-    localStorage.setItem(STORAGE_KEYS.SHOPPING_LISTS, JSON.stringify(lists));
-  },
-
-  deleteItem(listId: string, itemId: string): void {
-    const lists = this.getAll();
-    const list = lists.find((l) => l.id === listId);
-    if (list) {
-      list.items = list.items.filter((i) => i.id !== itemId);
-      list.updatedAt = Date.now();
-      localStorage.setItem(STORAGE_KEYS.SHOPPING_LISTS, JSON.stringify(lists));
-    }
-  },
-
-  export(listId: string): string {
-    const list = this.get(listId);
-    if (!list) return '';
-
-    let text = `Shopping List\n`;
-    text += `Created: ${new Date(list.createdAt).toLocaleDateString()}\n`;
-    text += `\n`;
-
-    list.items.forEach((item) => {
-      const checked = item.checked ? '✓' : '☐';
-      text += `${checked} ${item.ingredient} - ${item.amount} ${item.unit}\n`;
-    });
-
-    return text;
-  },
-};
-
-/**
  * Theme Preference Management
  */
 export const ThemeStorage = {
@@ -241,5 +88,84 @@ export const ThemeStorage = {
     const next = current === 'light' ? 'dark' : 'light';
     this.set(next);
     return next;
+  },
+};
+
+/**
+ * DEPRECATED: FavoritesStorage
+ * 
+ * This has been moved to backend persistence via tRPC
+ * Use: trpc.recipe.favorites.list / add / remove / check
+ * 
+ * @deprecated Use tRPC recipe.favorites.* instead
+ */
+export const FavoritesStorage = {
+  get(): never[] {
+    console.warn('[DEPRECATED] FavoritesStorage.get() - Use tRPC recipe.favorites.list instead');
+    return [];
+  },
+
+  add(): void {
+    console.warn('[DEPRECATED] FavoritesStorage.add() - Use tRPC recipe.favorites.add instead');
+  },
+
+  remove(): void {
+    console.warn('[DEPRECATED] FavoritesStorage.remove() - Use tRPC recipe.favorites.remove instead');
+  },
+
+  isFavorite(): boolean {
+    console.warn('[DEPRECATED] FavoritesStorage.isFavorite() - Use tRPC recipe.favorites.check instead');
+    return false;
+  },
+
+  toggle(): boolean {
+    console.warn('[DEPRECATED] FavoritesStorage.toggle() - Use tRPC recipe.favorites.add/remove instead');
+    return false;
+  },
+};
+
+/**
+ * DEPRECATED: ShoppingListStorage
+ * 
+ * This has been moved to backend persistence via tRPC
+ * Use: trpc.recipe.shoppingLists.list / create / items / addItem / updateItemStatus / delete
+ * 
+ * @deprecated Use tRPC recipe.shoppingLists.* instead
+ */
+export const ShoppingListStorage = {
+  getAll(): never[] {
+    console.warn('[DEPRECATED] ShoppingListStorage.getAll() - Use tRPC recipe.shoppingLists.list instead');
+    return [];
+  },
+
+  get(): null {
+    console.warn('[DEPRECATED] ShoppingListStorage.get() - Use tRPC recipe.shoppingLists.items instead');
+    return null;
+  },
+
+  create(): never {
+    console.warn('[DEPRECATED] ShoppingListStorage.create() - Use tRPC recipe.shoppingLists.create instead');
+    throw new Error('Use tRPC recipe.shoppingLists.create instead');
+  },
+
+  update(): void {
+    console.warn('[DEPRECATED] ShoppingListStorage.update() - Use tRPC recipe.shoppingLists.updateItemStatus instead');
+  },
+
+  toggleItem(): void {
+    console.warn('[DEPRECATED] ShoppingListStorage.toggleItem() - Use tRPC recipe.shoppingLists.updateItemStatus instead');
+  },
+
+  delete(): void {
+    console.warn('[DEPRECATED] ShoppingListStorage.delete() - Use tRPC recipe.shoppingLists.delete instead');
+  },
+
+  deleteItem(): void {
+    console.warn('[DEPRECATED] ShoppingListStorage.deleteItem() - Use tRPC recipe.shoppingLists.deleteItem instead');
+  },
+
+  export(): string {
+    console.warn('[DEPRECATED] ShoppingListStorage.export() - Implement export via tRPC instead');
+    return '';
   },
 };

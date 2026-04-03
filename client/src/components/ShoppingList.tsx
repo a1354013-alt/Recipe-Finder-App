@@ -43,16 +43,15 @@ export default function ShoppingListComponent({
 
   // Create shopping list mutation
   const createListMutation = trpc.recipe.shoppingLists.create.useMutation({
-    onSuccess: async (_, input) => {
-      // Refetch lists to get the newly created one
-      const lists = await utils.recipe.shoppingLists.list.fetch();
-      const newList = lists[lists.length - 1];
-      if (newList) {
-        setShoppingListId(newList.id);
+    onSuccess: async (response) => {
+      // Use the returned list.id directly instead of refetching
+      if (response.list && response.list.id) {
+        const newListId = response.list.id;
+        setShoppingListId(newListId);
         // Add all ingredients to the new list
         for (const ing of ingredients) {
           await addItemMutation.mutateAsync({
-            shoppingListId: newList.id,
+            shoppingListId: newListId,
             ingredient: ing.name,
             quantity: String(ing.amount),
             unit: ing.unit,
@@ -61,9 +60,14 @@ export default function ShoppingListComponent({
         setIsAdded(true);
         toast.success('Added to shopping list');
         setTimeout(() => setIsAdded(false), 2000);
+        // Invalidate lists query to refresh the list
+        utils.recipe.shoppingLists.list.invalidate();
+      } else {
+        toast.error('Failed to get shopping list ID');
       }
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Create shopping list error:', error);
       toast.error('Failed to create shopping list');
     },
   });

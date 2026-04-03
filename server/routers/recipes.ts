@@ -20,7 +20,9 @@ import {
   addItemToList,
   updateItemStatus,
   deleteList,
+  deleteShoppingListItem,
 } from "../services/shoppingListService";
+
 import {
   getUserHistory,
   deleteHistory,
@@ -94,8 +96,9 @@ export const recipeRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        await createNewShoppingList(ctx.user.id, input.name, ctx.requestId);
-        return { success: true };
+        logger.info('[RecipeRouter] Creating shopping list', `Name: ${input.name}`, { userId: ctx.user.id, requestId: ctx.requestId });
+        const list = await createNewShoppingList(ctx.user.id, input.name, input.description, ctx.requestId);
+        return { success: true, list: { id: list.id, name: list.name, description: list.description } };
       }),
 
     items: protectedProcedure
@@ -109,7 +112,7 @@ export const recipeRouter = router({
         z.object({
           shoppingListId: z.number(),
           ingredient: z.string(),
-          quantity: z.string().optional(),
+          quantity: z.coerce.number().optional(),
           unit: z.string().optional(),
         })
       )
@@ -118,7 +121,7 @@ export const recipeRouter = router({
           ctx.user.id,
           input.shoppingListId,
           input.ingredient,
-          input.quantity ? parseInt(input.quantity) : 1,
+          input.quantity || 1,
           input.unit || '',
           ctx.requestId
         );
@@ -143,6 +146,13 @@ export const recipeRouter = router({
         await deleteList(ctx.user.id, input.shoppingListId, ctx.requestId);
         return { success: true };
       }),
+
+    deleteItem: protectedProcedure
+      .input(z.object({ itemId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteShoppingListItem(ctx.user.id, input.itemId, ctx.requestId);
+        return { success: true };
+      }),
   }),
 
   /**
@@ -158,20 +168,8 @@ export const recipeRouter = router({
         return await getUserHistory(ctx.user.id, input.limit, ctx.requestId);
       }),
 
-    add: protectedProcedure
-      .input(
-        z.object({
-          imageUrl: z.string(),
-          recognizedIngredients: z.array(z.string()),
-          recommendedRecipes: z.array(z.string()).optional(),
-          requestId: z.string().optional(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        // Note: add operation is handled by ingredientRecognition service
-        // This route is for manual history entry if needed
-        return { success: true };
-      }),
+    // Note: aiHistory.add is handled by ingredientRecognition service during image recognition
+    // This route is deprecated - use ingredientRecognition.recognizeIngredients instead
 
     delete: protectedProcedure
       .input(z.object({ historyId: z.number() }))

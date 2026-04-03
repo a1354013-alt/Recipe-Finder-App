@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
@@ -323,10 +323,22 @@ export async function createShoppingList(userId: number, name: string, descripti
 
 export async function getUserShoppingLists(userId: number) {
   const db = await getDbOrThrow();
-  const { shoppingLists } = await import("../drizzle/schema");
+  const { shoppingLists, shoppingListItems } = await import("../drizzle/schema");
 
   try {
-    const result = await db.select().from(shoppingLists).where(eq(shoppingLists.userId, userId));
+    const result = await db
+      .select({
+        id: shoppingLists.id,
+        userId: shoppingLists.userId,
+        name: shoppingLists.name,
+        description: shoppingLists.description,
+        createdAt: shoppingLists.createdAt,
+        itemCount: count(shoppingListItems.id).as('itemCount'),
+      })
+      .from(shoppingLists)
+      .leftJoin(shoppingListItems, eq(shoppingLists.id, shoppingListItems.shoppingListId))
+      .where(eq(shoppingLists.userId, userId))
+      .groupBy(shoppingLists.id) as any;
     logger.info("[DB] Shopping lists retrieved", "User shopping lists fetched", { userId, count: result.length });
     return result;
   } catch (error) {
@@ -435,15 +447,36 @@ export async function updateShoppingListItemStatus(itemId: number, checked: bool
  */
 export async function deleteShoppingList(listId: number) {
   const db = await getDbOrThrow();
-  const { shoppingLists } = await import("../drizzle/schema");
+  const { shoppingLists, shoppingListItems } = await import("../drizzle/schema");
 
   try {
+    // First delete all items in the list
+    await db.delete(shoppingListItems).where(eq(shoppingListItems.shoppingListId, listId));
+    // Then delete the list itself
     const result = await db.delete(shoppingLists).where(eq(shoppingLists.id, listId));
     logger.info("[DB] Shopping list deleted", "Shopping list deleted", { listId });
     return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error("[DB] Failed to delete shopping list", { error: errorMessage, listId });
+    throw error;
+  }
+}
+
+/**
+ * Delete shopping list item
+ */
+export async function deleteShoppingListItem(itemId: number) {
+  const db = await getDbOrThrow();
+  const { shoppingListItems } = await import("../drizzle/schema");
+
+  try {
+    const result = await db.delete(shoppingListItems).where(eq(shoppingListItems.id, itemId));
+    logger.info("[DB] Shopping list item deleted", "Shopping list item deleted", { itemId });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[DB] Failed to delete shopping list item", { error: errorMessage, itemId });
     throw error;
   }
 }

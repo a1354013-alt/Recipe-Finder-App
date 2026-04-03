@@ -19,7 +19,7 @@ export default function ShoppingListDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
-  const [newItemName, setNewItemName] = useState('');
+  const [newItemIngredient, setNewItemIngredient] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('1');
   const [newItemUnit, setNewItemUnit] = useState('pcs');
 
@@ -35,7 +35,7 @@ export default function ShoppingListDetail() {
   const addItemMutation = trpc.recipe.shoppingLists.addItem.useMutation({
     onSuccess: () => {
       toast.success('Item added');
-      setNewItemName('');
+      setNewItemIngredient('');
       setNewItemQuantity('1');
       setNewItemUnit('pcs');
       itemsQuery.refetch();
@@ -65,14 +65,14 @@ export default function ShoppingListDetail() {
   });
 
   const handleAddItem = async () => {
-    if (!newItemName.trim()) {
-      toast.error('Please enter item name');
+    if (!newItemIngredient.trim()) {
+      toast.error('Please enter ingredient name');
       return;
     }
     await addItemMutation.mutateAsync({
       shoppingListId: listId,
-      name: newItemName,
-      quantity: parseInt(newItemQuantity) || 1,
+      ingredient: newItemIngredient,
+      quantity: String(newItemQuantity || '1'),
       unit: newItemUnit,
     });
   };
@@ -120,9 +120,9 @@ export default function ShoppingListDetail() {
           <h2 className="font-merriweather font-bold text-lg mb-4">Add Item</h2>
           <div className="flex gap-2 flex-wrap">
             <Input
-              placeholder="Item name..."
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
+              placeholder="Ingredient name..."
+              value={newItemIngredient}
+              onChange={(e) => setNewItemIngredient(e.target.value)}
               className="flex-1 min-w-[200px]"
             />
             <Input
@@ -183,19 +183,19 @@ export default function ShoppingListDetail() {
                 <div className="flex items-center gap-3 flex-1">
                   <Button
                     size="sm"
-                    variant={item.completed ? 'default' : 'outline'}
+                    variant={item.checked ? 'default' : 'outline'}
                     onClick={() =>
                       updateItemMutation.mutate({
                         itemId: item.id,
-                        completed: !item.completed,
+                        checked: !item.checked,
                       })
                     }
                     disabled={updateItemMutation.isPending}
                   >
                     <Check className="w-4 h-4" />
                   </Button>
-                  <div className={item.completed ? 'line-through text-muted-foreground' : ''}>
-                    <p className="font-lato font-semibold">{item.name}</p>
+                  <div className={item.checked ? 'line-through text-muted-foreground' : ''}>
+                    <p className="font-lato font-semibold">{item.ingredient}</p>
                     <p className="text-sm text-muted-foreground">
                       {item.quantity} {item.unit}
                     </p>
