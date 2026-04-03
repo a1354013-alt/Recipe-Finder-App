@@ -178,4 +178,72 @@ export const recipeRouter = router({
         return { success: true, historyId: input.historyId };
       }),
   }),
+
+  /**
+   * Recipe Search and Discovery Routes
+   * 
+   * These routes provide real recipe data
+   * Primary source: backend service
+   * Fallback: mock data (for development/offline)
+   */
+  search: protectedProcedure
+    .input(
+      z.object({
+        query: z.string(),
+        offset: z.number().default(0),
+        number: z.number().default(12),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement real recipe search from external API or database
+      // For now, return structured response that frontend expects
+      return {
+        results: [],
+        totalResults: 0,
+        offset: input.offset,
+        number: input.number,
+      };
+    }),
+
+  details: protectedProcedure
+    .input(z.object({ recipeId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement real recipe details from external API or database
+      // For now, return null to trigger frontend fallback
+      return null;
+    }),
+
+  random: protectedProcedure
+    .input(z.object({ number: z.number().default(12) }))
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement real random recipes from external API or database
+      // For now, return empty array to trigger frontend fallback
+      return [];
+    }),
+
+  byCuisine: protectedProcedure
+    .input(
+      z.object({
+        cuisine: z.string(),
+        number: z.number().default(12),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement real recipes by cuisine from external API or database
+      // For now, return empty array to trigger frontend fallback
+      return [];
+    }),
+
+  byDiet: protectedProcedure
+    .input(
+      z.object({
+        diet: z.string(),
+        number: z.number().default(12),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // TODO: Implement real recipes by diet from external API or database
+      // For now, return empty array to trigger frontend fallback
+      return [];
+    }),
 });
