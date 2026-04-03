@@ -10,7 +10,7 @@
  * Fallback: Mock data
  */
 
-import { logger } from '../_core/index';
+import { logger } from '../_core/logger';
 
 /**
  * Generate mock recipes (fallback only)

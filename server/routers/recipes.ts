@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { logger } from '../_core/logger';
 import {
   addRecipeToFavorites,
   removeRecipeFromFavorites,
@@ -27,6 +28,13 @@ import {
   getUserHistory,
   deleteHistory,
 } from '../services/aiHistoryService';
+import {
+  searchRecipes,
+  getRecipeDetails,
+  getRandomRecipes,
+  getRecipesByCuisine,
+  getRecipesByDiet,
+} from '../services/recipeService';
 
 export const recipeRouter = router({
   /**
@@ -195,30 +203,30 @@ export const recipeRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement real recipe search from external API or database
-      // For now, return structured response that frontend expects
-      return {
-        results: [],
-        totalResults: 0,
+      logger.info('[RecipeRouter] Searching recipes', `Query: ${input.query}`, { query: input.query, requestId: ctx.requestId });
+      const result = await searchRecipes({
+        query: input.query,
         offset: input.offset,
-        number: input.number,
-      };
+        limit: input.number,
+        requestId: ctx.requestId,
+      });
+      return result;
     }),
 
   details: protectedProcedure
     .input(z.object({ recipeId: z.number() }))
     .query(async ({ ctx, input }) => {
-      // TODO: Implement real recipe details from external API or database
-      // For now, return null to trigger frontend fallback
-      return null;
+      logger.info('[RecipeRouter] Fetching recipe details', `Recipe ID: ${input.recipeId}`, { recipeId: input.recipeId, requestId: ctx.requestId });
+      const recipe = await getRecipeDetails(input.recipeId, ctx.requestId);
+      return recipe;
     }),
 
   random: protectedProcedure
     .input(z.object({ number: z.number().default(12) }))
     .query(async ({ ctx, input }) => {
-      // TODO: Implement real random recipes from external API or database
-      // For now, return empty array to trigger frontend fallback
-      return [];
+      logger.info('[RecipeRouter] Fetching random recipes', `Count: ${input.number}`, { count: input.number, requestId: ctx.requestId });
+      const recipes = await getRandomRecipes(input.number, ctx.requestId);
+      return recipes;
     }),
 
   byCuisine: protectedProcedure
@@ -229,9 +237,9 @@ export const recipeRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement real recipes by cuisine from external API or database
-      // For now, return empty array to trigger frontend fallback
-      return [];
+      logger.info('[RecipeRouter] Fetching recipes by cuisine', `Cuisine: ${input.cuisine}`, { cuisine: input.cuisine, count: input.number, requestId: ctx.requestId });
+      const recipes = await getRecipesByCuisine(input.cuisine, input.number, ctx.requestId);
+      return recipes;
     }),
 
   byDiet: protectedProcedure
@@ -242,8 +250,8 @@ export const recipeRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      // TODO: Implement real recipes by diet from external API or database
-      // For now, return empty array to trigger frontend fallback
-      return [];
+      logger.info('[RecipeRouter] Fetching recipes by diet', `Diet: ${input.diet}`, { diet: input.diet, count: input.number, requestId: ctx.requestId });
+      const recipes = await getRecipesByDiet(input.diet, input.number, ctx.requestId);
+      return recipes;
     }),
 });
