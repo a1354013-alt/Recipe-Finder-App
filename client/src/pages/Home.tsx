@@ -9,6 +9,7 @@
  * - Unified React Query data management
  */
 
+import React from 'react';
 import { useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
 import RecipeCard from '@/components/RecipeCard';
@@ -188,6 +189,3 @@ export default function Home() {
     </div>
   );
 }
-
-// 需要 React import
-import React from 'react';

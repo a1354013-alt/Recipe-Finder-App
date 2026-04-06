@@ -9,3 +9,10 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
  * - 前端只需導向此 URL
  */
 export const LOGIN_URL = "/api/oauth/login";
+
+/**
+ * 取得登入 URL
+ */
+export function getLoginUrl(): string {
+  return LOGIN_URL;
+}

@@ -27,6 +27,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
 
   const ctx: TrpcContext = {
     user,
+    requestId: "test-request-id",
     req: {
       protocol: "https",
       headers: {},

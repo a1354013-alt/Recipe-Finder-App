@@ -110,7 +110,8 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       logger.error(
         "[OAuth] Failed to generate login URL",
-        error,
+        error instanceof Error ? error : new Error(String(error)),
+        undefined,
         (req as any).id
       );
       res.status(500).json({ error: "Failed to generate login URL" });

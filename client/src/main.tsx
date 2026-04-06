@@ -44,6 +44,7 @@ function getCsrfToken(): string | null {
   return null;
 }
 
+// Ensure QueryClient is imported
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -117,10 +118,10 @@ queryClient.getMutationCache().subscribe(event => {
 });
 
 const trpcClient = trpc.createClient({
-  transformer: superjson,
   links: [
     httpBatchLink({
       url: "/api/trpc",
+      transformer: superjson,
       fetch(input, init) {
         // 讀取 CSRF token 並添加到 headers
         const csrfToken = getCsrfToken();

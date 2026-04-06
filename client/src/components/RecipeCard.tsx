@@ -19,19 +19,25 @@ interface RecipeCardProps {
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
+  Easy: 'bg-green-100 text-green-800',
+  Medium: 'bg-yellow-100 text-yellow-800',
+  Hard: 'bg-red-100 text-red-800',
   easy: 'bg-green-100 text-green-800',
   medium: 'bg-yellow-100 text-yellow-800',
   hard: 'bg-red-100 text-red-800',
 };
 
 const DIFFICULTY_LABELS: Record<string, string> = {
+  Easy: '👶 Easy',
+  Medium: '👨‍🍳 Medium',
+  Hard: '🔥 Hard',
   easy: '👶 Easy',
   medium: '👨‍🍳 Medium',
   hard: '🔥 Hard',
 };
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
-  const difficultyKey = (recipe.difficulty || 'easy') as keyof typeof DIFFICULTY_COLORS;
+  const difficultyKey = (recipe.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_COLORS;
 
   return (
     <Link href={`/recipe/${recipe.id}`}>

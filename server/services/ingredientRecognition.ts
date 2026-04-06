@@ -84,7 +84,13 @@ export async function recognizeIngredients(
       return [];
     }
 
-    const parsed = JSON.parse(content);
+    // Handle content as string or array
+    const contentStr = typeof content === 'string' ? content : 
+      Array.isArray(content) ? content.find(c => typeof c === 'string' || (c && 'text' in c)) : '';
+    const textContent = typeof contentStr === 'string' ? contentStr : 
+      (contentStr && 'text' in contentStr) ? (contentStr as any).text : '';
+    
+    const parsed = JSON.parse(textContent as string);
     const ingredients = parsed.ingredients || [];
     
     logger.info(
@@ -155,7 +161,13 @@ export async function getRecipeRecommendations(
       return [];
     }
 
-    const parsed = JSON.parse(content);
+    // Handle content as string or array
+    const contentStr = typeof content === 'string' ? content : 
+      Array.isArray(content) ? content.find(c => typeof c === 'string' || (c && 'text' in c)) : '';
+    const textContent = typeof contentStr === 'string' ? contentStr : 
+      (contentStr && 'text' in contentStr) ? (contentStr as any).text : '';
+    
+    const parsed = JSON.parse(textContent as string);
     const recipes = parsed.recipes || [];
 
     logger.info(

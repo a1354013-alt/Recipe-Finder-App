@@ -1,7 +1,7 @@
 /**
  * AI Recognition Page
  * 
- * Upload food images and get AI-powered ingredient recognition
+ * Uses React Query hooks for AI-powered ingredient recognition
  * and recipe recommendations
  * 
  * 安全特性：
@@ -18,6 +18,7 @@ import { Loader2, Upload, Sparkles, ChefHat, Settings } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import RecipeCard from '@/components/RecipeCard';
 import { trpc } from '@/lib/trpc';
+import { Recipe } from '@/lib/recipes';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
 
@@ -27,15 +28,6 @@ interface RecognizedIngredient {
   unit: string;
 }
 
-interface RecommendedRecipe {
-  name: string;
-  description: string;
-  ingredients_used: string[];
-  difficulty: string;
-  cookTime: number;
-  servings?: number;
-}
-
 export default function AIRecognition() {
   // All hooks must be called before any conditional returns
   const [, setLocation] = useLocation();
@@ -43,10 +35,11 @@ export default function AIRecognition() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [recognizedIngredients, setRecognizedIngredients] = useState<RecognizedIngredient[]>([]);
-  const [recommendedRecipes, setRecommendedRecipes] = useState<RecommendedRecipe[]>([]);
+  const [recommendedRecipes, setRecommendedRecipes] = useState<Recipe[]>([]);
   const [confidence, setConfidence] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Use React Query hooks for mutations
   const recognizeIngredientsMutation = trpc.ai.recognizeIngredients.useMutation();
   const getRecommendationsMutation = trpc.ai.getRecipeRecommendations.useMutation();
   const getConfigQuery = trpc.ai.getConfig.useQuery();
@@ -83,21 +76,38 @@ export default function AIRecognition() {
       return;
     }
 
+    // 檢查 MIME type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Only JPEG, PNG, and WebP images are supported');
+      return;
+    }
+
+    // 轉換為 base64
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
       setSelectedImage(base64);
-      // Pass actual file type to handler
-      handleRecognizeIngredients(base64, file.type);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRecognizeIngredients = async (base64: string, mimeType: string = 'image/jpeg') => {
+  const handleRecognize = async () => {
+    if (!selectedImage) {
+      toast.error('Please select an image');
+      return;
+    }
+
     setIsProcessing(true);
     try {
+      // Extract base64 data (remove data:image/...;base64, prefix)
+      const base64Data = selectedImage.split(',')[1] || selectedImage;
+      const mimeType = selectedImage.includes('image/jpeg') ? 'image/jpeg' : 
+                      selectedImage.includes('image/png') ? 'image/png' : 'image/webp';
+
+      // Call recognizeIngredients mutation
       const result = await recognizeIngredientsMutation.mutateAsync({
-        imageBase64: base64.split(',')[1] || base64,
+        imageBase64: base64Data,
         mimeType: mimeType as 'image/jpeg' | 'image/png' | 'image/webp',
       });
 
@@ -105,13 +115,26 @@ export default function AIRecognition() {
       setConfidence(result.confidence);
 
       // Get recipe recommendations
-      const ingredientNames = result.ingredients.map((ing) => ing.name);
+      const ingredientNames = result.ingredients.map((ing: any) => ing.name);
       const recipes = await getRecommendationsMutation.mutateAsync({
         ingredients: ingredientNames,
         maxRecipes: 5,
       });
 
-      setRecommendedRecipes(recipes.recipes);
+      // Convert recommendations to Recipe format for display
+      const recipeObjects: Recipe[] = recipes.recipes.map((recipe: any, idx: number) => ({
+        id: idx,
+        title: recipe.name || 'Recipe',
+        image: '/images/recipe-placeholder.jpg',
+        readyInMinutes: recipe.cookTime || 30,
+        servings: recipe.servings || 4,
+        sourceUrl: '',
+        summary: recipe.description,
+        difficulty: recipe.difficulty as 'Easy' | 'Medium' | 'Hard',
+      }));
+
+      setRecommendedRecipes(recipeObjects);
+      toast.success('Ingredients recognized successfully!');
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error recognizing ingredients:', error);
@@ -122,204 +145,165 @@ export default function AIRecognition() {
     }
   };
 
-  const handleSearch = (query: string) => {
-    setLocation(`/search?q=${encodeURIComponent(query)}`);
+  const handleClear = () => {
+    setSelectedImage(null);
+    setRecognizedIngredients([]);
+    setRecommendedRecipes([]);
+    setConfidence(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation onSearch={handleSearch} />
+      <Navigation onSearch={() => {}} />
 
-      {/* Hero Section */}
-      <section className="relative py-12 px-4 bg-gradient-to-r from-accent/10 to-accent/5">
-        <div className="container max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-accent rounded-lg">
-              <Sparkles className="w-8 h-8 text-accent-foreground" />
-            </div>
+      <div className="container py-12">
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Sparkles className="w-8 h-8 text-accent" />
+            <h1 className="font-merriweather font-bold text-4xl text-accent">
+              AI Recipe Recognition
+            </h1>
+            <Sparkles className="w-8 h-8 text-accent" />
           </div>
-          <h1 className="font-merriweather font-bold text-4xl md:text-5xl text-accent mb-4">
-            AI 食材識別
-          </h1>
-          <p className="text-lg text-muted-foreground font-lato max-w-2xl mx-auto">
-            上傳食材圖片，讓 AI 識別食材並推薦相關食譜
+          <p className="text-muted-foreground font-lato max-w-2xl mx-auto">
+            Upload a food image and our AI will recognize the ingredients and suggest recipes
           </p>
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm">
-            <span className="px-3 py-1 bg-accent/20 text-accent rounded-full font-lato">
-              {aiProvider === 'manus' ? 'Manus AI' : 'Ollama'}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocation('/ai-settings')}
-              className="gap-1"
-            >
-              <Settings className="w-4 h-4" />
-              配置
-            </Button>
-          </div>
         </div>
-      </section>
 
-      {/* Main Content */}
-      <div className="container max-w-4xl mx-auto py-12 px-4">
         {/* Upload Section */}
-        <Card className="mb-8 border-2 border-dashed border-accent/30 hover:border-accent/50 transition-colors">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ChefHat className="w-5 h-5 text-accent" />
-              上傳食材圖片
-            </CardTitle>
-            <CardDescription>
-              支援 JPG、PNG 等常見圖片格式（最大 8MB）
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-              className="w-full py-8 border-2 border-dashed border-accent/30 rounded-lg hover:border-accent/50 transition-colors flex flex-col items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-8 h-8 text-accent animate-spin" />
-                  <p className="text-muted-foreground font-lato">正在識別食材...</p>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-8 h-8 text-accent" />
-                  <p className="font-lato text-foreground">點擊上傳圖片或拖放圖片到此處</p>
-                  <p className="text-sm text-muted-foreground font-lato">JPG、PNG 或其他圖片格式（最大 8MB）</p>
-                </>
-              )}
-            </button>
-          </CardContent>
-        </Card>
-
-        {/* Image Preview & Results */}
-        {selectedImage && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            {/* Image Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">上傳的圖片</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <img
-                  src={selectedImage}
-                  alt="Uploaded food"
-                  className="w-full h-64 object-cover rounded-lg"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Image Upload Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Upload Image
+              </CardTitle>
+              <CardDescription>
+                Supported formats: JPEG, PNG, WebP (max 8MB)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {selectedImage ? (
+                  <div className="relative">
+                    <img
+                      src={selectedImage}
+                      alt="Selected"
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    <Button
+                      onClick={() => setSelectedImage(null)}
+                      variant="outline"
+                      className="absolute top-2 right-2"
+                    >
+                      Change
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-accent transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload or drag and drop
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
                 />
-              </CardContent>
-            </Card>
-
-            {/* Recognized Ingredients */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">識別的食材</CardTitle>
-                <CardDescription>
-                  識別信心度: {(confidence * 100).toFixed(1)}%
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {recognizedIngredients.length > 0 ? (
-                    recognizedIngredients.map((ingredient, index) => (
-                      <div
-                        key={index}
-                        className="p-3 bg-accent/10 rounded-lg border border-accent/20"
-                      >
-                        <p className="font-merriweather font-semibold text-foreground">
-                          {ingredient.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground font-lato">
-                          {ingredient.quantity} {ingredient.unit}
-                        </p>
-                      </div>
-                    ))
+                <Button
+                  onClick={handleRecognize}
+                  disabled={!selectedImage || isProcessing || recognizeIngredientsMutation.isPending}
+                  className="w-full"
+                >
+                  {isProcessing || recognizeIngredientsMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Recognizing...
+                    </>
                   ) : (
-                    <p className="text-muted-foreground font-lato">等待識別結果...</p>
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Recognize Ingredients
+                    </>
                   )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recognized Ingredients */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ChefHat className="w-5 h-5" />
+                Recognized Ingredients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recognizedIngredients.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Confidence:</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-accent transition-all"
+                          style={{ width: `${confidence * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-semibold">{(confidence * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {recognizedIngredients.map((ing, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 bg-secondary rounded"
+                      >
+                        <span className="font-lato">{ing.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {ing.quantity} {ing.unit}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button onClick={handleClear} variant="outline" className="w-full">
+                    Clear
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              ) : (
+                <p className="text-center text-muted-foreground font-lato">
+                  Upload an image to see recognized ingredients
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Recommended Recipes */}
         {recommendedRecipes.length > 0 && (
           <div>
-            <div className="flex items-center gap-4 mb-8">
-              <h2 className="section-title m-0">推薦食譜</h2>
-              <div className="h-px flex-1 bg-gradient-to-r from-accent to-transparent" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedRecipes.map((recipe, index) => (
-                <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-merriweather line-clamp-2">
-                      {recipe.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground font-lato line-clamp-2">
-                      {recipe.description}
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <span className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full font-lato">
-                        {recipe.difficulty}
-                      </span>
-                      <span className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full font-lato">
-                        {recipe.cookTime} 分鐘
-                      </span>
-                      {recipe.servings && (
-                        <span className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full font-lato">
-                          {recipe.servings} 人份
-                        </span>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-border">
-                      <p className="text-xs text-muted-foreground font-lato mb-2">使用的食材:</p>
-                      <div className="flex gap-1 flex-wrap">
-                        {recipe.ingredients_used.slice(0, 3).map((ing, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded font-lato"
-                          >
-                            {ing}
-                          </span>
-                        ))}
-                        {recipe.ingredients_used.length > 3 && (
-                          <span className="px-2 py-1 text-xs text-muted-foreground font-lato">
-                            +{recipe.ingredients_used.length - 3} 更多
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            <h2 className="font-merriweather font-bold text-2xl text-accent mb-6">
+              Recommended Recipes
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {recommendedRecipes.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
               ))}
             </div>
           </div>
-        )}
-
-        {/* Empty State */}
-        {!selectedImage && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <ChefHat className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground font-lato">
-                上傳一張食材圖片開始探索推薦食譜
-              </p>
-            </CardContent>
-          </Card>
         )}
       </div>
     </div>
