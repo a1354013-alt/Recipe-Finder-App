@@ -1,14 +1,13 @@
 /**
  * AI Recognition History Page
  * 
- * Displays user's AI ingredient recognition history
- * - Images uploaded
- * - Recognized ingredients
- * - Recommended recipes
- * - Delete history items
+ * Architecture:
+ * - Single React Query hook with select function for data transformation
+ * - No manual useState/useEffect for data parsing
+ * - Parsing logic moved to query select
+ * - Clean separation of concerns
  */
 
-import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
 import { trpc } from '@/lib/trpc';
@@ -25,13 +24,51 @@ interface HistoryItem {
   createdAt: Date;
 }
 
+/**
+ * Parse history item data
+ * Handles both string and array formats for ingredients and recipes
+ */
+function parseHistoryItem(item: any): HistoryItem {
+  try {
+    return {
+      ...item,
+      recognizedIngredients: typeof item.recognizedIngredients === 'string'
+        ? JSON.parse(item.recognizedIngredients)
+        : Array.isArray(item.recognizedIngredients)
+          ? item.recognizedIngredients
+          : [],
+      recommendedRecipes: item.recommendedRecipes
+        ? (typeof item.recommendedRecipes === 'string'
+          ? JSON.parse(item.recommendedRecipes)
+          : Array.isArray(item.recommendedRecipes)
+            ? item.recommendedRecipes
+            : [])
+        : [],
+    };
+  } catch (error) {
+    console.error('Failed to parse history item:', error, item);
+    return {
+      ...item,
+      recognizedIngredients: [],
+      recommendedRecipes: [],
+    };
+  }
+}
+
 export default function AIHistory() {
   const [, setLocation] = useLocation();
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const utils = trpc.useUtils();
 
-  const historyQuery = trpc.recipe.aiHistory.list.useQuery({ limit: 50 });
+  // Single query with select function for data transformation
+  const historyQuery = trpc.recipe.aiHistory.list.useQuery(
+    { limit: 50 },
+    {
+      select: (data) => {
+        // Transform data in query layer, not in component
+        return (data || []).map(parseHistoryItem);
+      },
+    }
+  );
 
   const deleteMutation = trpc.recipe.aiHistory.delete.useMutation({
     onSuccess: () => {
@@ -43,42 +80,6 @@ export default function AIHistory() {
     },
   });
 
-  useEffect(() => {
-    if (historyQuery.isError) {
-      toast.error('Failed to load history');
-      setLoading(false);
-    } else if (historyQuery.data) {
-      const parsed = historyQuery.data.map((item: any) => {
-        try {
-          return {
-            ...item,
-            recognizedIngredients: typeof item.recognizedIngredients === 'string'
-              ? JSON.parse(item.recognizedIngredients)
-              : Array.isArray(item.recognizedIngredients)
-                ? item.recognizedIngredients
-                : [],
-            recommendedRecipes: item.recommendedRecipes
-              ? (typeof item.recommendedRecipes === 'string'
-                ? JSON.parse(item.recommendedRecipes)
-                : Array.isArray(item.recommendedRecipes)
-                  ? item.recommendedRecipes
-                  : [])
-              : [],
-          };
-        } catch (error) {
-          console.error('Failed to parse history item:', error, item);
-          return {
-            ...item,
-            recognizedIngredients: [],
-            recommendedRecipes: [],
-          };
-        }
-      });
-      setHistory(parsed);
-      setLoading(false);
-    }
-  }, [historyQuery.data, historyQuery.isError]);
-
   const handleSearch = (query: string) => {
     setLocation(`/search?q=${encodeURIComponent(query)}`);
   };
@@ -89,7 +90,8 @@ export default function AIHistory() {
     }
   };
 
-  if (loading || historyQuery.isLoading) {
+  // Loading state
+  if (historyQuery.isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation onSearch={handleSearch} />
@@ -103,6 +105,7 @@ export default function AIHistory() {
     );
   }
 
+  // Error state
   if (historyQuery.isError) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -121,6 +124,8 @@ export default function AIHistory() {
       </div>
     );
   }
+
+  const history = historyQuery.data || [];
 
   return (
     <div className="min-h-screen bg-background">

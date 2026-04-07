@@ -9,25 +9,22 @@ import './index.css'
 import { toast } from 'sonner';
 
 /**
- * 自訂 retry 邏輯：
- * - 401 (UNAUTHORIZED) 不重試（未登入）
- * - 403 (FORBIDDEN) 不重試（權限不足）
- * - 其他錯誤最多重試 2 次
+ * Custom retry logic:
+ * - 401 (UNAUTHORIZED) - no retry (not logged in)
+ * - 403 (FORBIDDEN) - no retry (insufficient permissions)
+ * - Other errors - retry up to 2 times
  */
 function shouldRetry(failureCount: number, error: unknown): boolean {
-  // 檢查是否為 401 UNAUTHORIZED 或 403 FORBIDDEN
   if (error instanceof TRPCClientError) {
     if (error.data?.code === "UNAUTHORIZED" || error.data?.code === "FORBIDDEN") {
       return false;
     }
   }
-
-  // 其他錯誤最多重試 2 次
   return failureCount < 2;
 }
 
 /**
- * 從 cookie 讀取 CSRF token
+ * Read CSRF token from cookie
  */
 function getCsrfToken(): string | null {
   const name = "csrf_token=";
@@ -44,7 +41,6 @@ function getCsrfToken(): string | null {
   return null;
 }
 
-// Ensure QueryClient is imported
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -59,46 +55,63 @@ const queryClient = new QueryClient({
 });
 
 /**
- * 全域 API 錯誤處理
- * - 優先讀 error.data?.requestId
- * - UNAUTHORIZED 顯示登入提示
- * - 一般錯誤顯示 toast 並輸出 console
+ * Global API Error Handler
+ * 
+ * Distinguishes between:
+ * - UNAUTHORIZED (401): User not logged in
+ * - FORBIDDEN (403): User lacks permissions
+ * - Network errors: Connection issues
+ * - Server errors: 5xx errors
+ * - Other errors: Generic errors
+ * 
+ * Each error type shows appropriate user message
  */
 function handleTRPCError(error: unknown, context: string) {
   if (!(error instanceof TRPCClientError)) return;
 
-  // 提取 requestId：優先讀 error.data?.requestId，fallback 到 header
+  // Extract requestId for error tracking
   const requestId = error.data?.requestId || (error.meta as any)?.response?.headers?.get?.("x-request-id");
+  const errorCode = error.data?.code;
   
-  // 檢查是否為認證錯誤
-  const isAuthError = error.data?.code === "UNAUTHORIZED" || error.data?.code === "FORBIDDEN";
+  // Build error message based on error type
+  let errorMessage = '';
   
-  // 構建錯誤訊息
-  let errorMessage = error.message || 'An error occurred';
-  if (requestId) {
-    errorMessage = `${errorMessage} (ID: ${requestId})`;
-  }
-
-  // 根據錯誤類型顯示提示
-  if (isAuthError) {
-    toast.error('Please sign in to continue');
+  if (errorCode === "UNAUTHORIZED") {
+    errorMessage = 'Please sign in to continue';
+  } else if (errorCode === "FORBIDDEN") {
+    errorMessage = 'You do not have permission to perform this action';
+  } else if (errorCode === "NOT_FOUND") {
+    errorMessage = 'The requested resource was not found';
+  } else if (errorCode === "BAD_REQUEST") {
+    errorMessage = 'Invalid request. Please check your input';
+  } else if (errorCode === "INTERNAL_SERVER_ERROR") {
+    errorMessage = 'Server error. Please try again later';
   } else {
-    toast.error(errorMessage);
+    errorMessage = error.message || 'An error occurred. Please try again';
   }
 
-  // 開發環境輸出完整錯誤資訊
+  // Add requestId to message if available (for error tracking)
+  if (requestId) {
+    errorMessage = `${errorMessage} (Code: ${requestId.substring(0, 8)})`;
+  }
+
+  // Show toast notification
+  toast.error(errorMessage);
+
+  // Log detailed error info in development
   if (import.meta.env.DEV) {
     console.error(`[${context}]`, {
-      code: error.data?.code,
+      code: errorCode,
       message: error.message,
       requestId,
-      isAuthError,
+      fullError: error,
     });
   }
 }
 
 /**
- * Query 全域錯誤訂閱
+ * Global Query Error Handler
+ * Subscribes to all query errors and shows appropriate user feedback
  */
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
@@ -108,7 +121,8 @@ queryClient.getQueryCache().subscribe(event => {
 });
 
 /**
- * Mutation 全域錯誤訂閱
+ * Global Mutation Error Handler
+ * Subscribes to all mutation errors and shows appropriate user feedback
  */
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
@@ -123,11 +137,10 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
-        // 讀取 CSRF token 並添加到 headers
+        // Add CSRF token to request headers
         const csrfToken = getCsrfToken();
         const headers = new Headers(init?.headers || {});
         
-        // 所有請求都帶上 CSRF token（server 會自動略過 GET/HEAD/OPTIONS）
         if (csrfToken) {
           headers.set("x-csrf-token", csrfToken);
         }

@@ -1,21 +1,25 @@
 /**
  * Search Results Page
  * 
- * Uses React Query hooks for data fetching:
- * - useSearchRecipes: Primary data fetching
- * - Pagination with infinite query pattern
- * - Advanced filtering support
+ * Uses React Query infinite query for true "Load More" pattern:
+ * - Accumulates results across pages
+ * - Appends new data instead of replacing
+ * - Proper pagination with hasNextPage
  * - Complete loading/error/empty state handling
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearch, useLocation } from 'wouter';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import Navigation from '@/components/Navigation';
 import AdvancedFilters, { FilterState } from '@/components/AdvancedFilters';
 import RecipeCard from '@/components/RecipeCard';
-import { Recipe, useSearchRecipes } from '@/lib/recipes';
+import { Recipe } from '@/lib/recipes';
+import { trpc } from '@/lib/trpc';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+const ITEMS_PER_PAGE = 12;
 
 export default function SearchResults() {
   const query = useSearch();
@@ -27,41 +31,59 @@ export default function SearchResults() {
     difficulty: [],
     diets: [],
   });
-  const [currentPage, setCurrentPage] = useState(0);
 
   const searchQuery = new URLSearchParams(query).get('q') || '';
 
-  // Use React Query hook for searching
+  // Use infinite query for true "Load More" pattern
   const {
-    data: searchResults = [],
+    data,
     isLoading,
     error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
     refetch,
-  } = useSearchRecipes(searchQuery, {
-    offset: 0,
-    number: 12,
+  } = useInfiniteQuery({
+    queryKey: ['searchRecipes', searchQuery, filters],
+    queryFn: async ({ pageParam = 0 }) => {
+      const result = await trpc.recipe.search.query({
+        query: searchQuery,
+        offset: pageParam,
+        limit: ITEMS_PER_PAGE,
+        filters,
+      });
+      return result;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const totalFetched = allPages.reduce((sum, page) => sum + page.results.length, 0);
+      return totalFetched < lastPage.totalResults ? totalFetched : undefined;
+    },
+    enabled: !!searchQuery,
   });
+
+  // Accumulate all results from all pages
+  const allResults = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.results);
+  }, [data?.pages]);
+
+  const totalResults = data?.pages[0]?.totalResults ?? 0;
 
   const handleSearch = (newQuery: string) => {
     setLocation(`/search?q=${encodeURIComponent(newQuery)}`);
-    setCurrentPage(0);
   };
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
-    setCurrentPage(0);
   };
 
   const handleRetry = () => {
     refetch();
   };
 
-  const loadMore = () => {
-    setCurrentPage((prev) => prev + 1);
+  const handleLoadMore = () => {
+    fetchNextPage();
   };
-
-  const displayedResults = Array.isArray(searchResults) ? searchResults : [];
-  const totalResults = displayedResults.length;
 
   return (
     <div className="min-h-screen bg-white">
@@ -90,8 +112,8 @@ export default function SearchResults() {
           </p>
         </div>
 
-        {/* Loading State */}
-        {isLoading && displayedResults.length === 0 ? (
+        {/* Loading State - Initial Load */}
+        {isLoading && allResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-12 h-12 text-orange-600 animate-spin mb-4" />
             <p className="text-gray-500 font-lato">Searching recipes...</p>
@@ -107,7 +129,7 @@ export default function SearchResults() {
               Retry
             </Button>
           </div>
-        ) : displayedResults.length === 0 ? (
+        ) : allResults.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-20">
             <p className="text-gray-500 font-lato text-lg mb-4">
@@ -121,21 +143,28 @@ export default function SearchResults() {
           /* Content State */
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {displayedResults.map((recipe: Recipe) => (
+              {allResults.map((recipe: Recipe) => (
                 <RecipeCard key={recipe.id} recipe={recipe} />
               ))}
             </div>
 
-            {/* Load More Button */}
-            {displayedResults.length < totalResults && (
+            {/* Results Info */}
+            <div className="text-center mb-8 text-gray-600 font-lato">
+              <p>
+                Showing {allResults.length} of {totalResults} recipes
+              </p>
+            </div>
+
+            {/* Load More Button - Only show if there are more results */}
+            {hasNextPage && (
               <div className="flex justify-center">
                 <Button
-                  onClick={loadMore}
-                  disabled={isLoading}
+                  onClick={handleLoadMore}
+                  disabled={isFetchingNextPage}
                   variant="outline"
                   className="border-orange-600 text-orange-600 hover:bg-orange-50"
                 >
-                  {isLoading ? (
+                  {isFetchingNextPage ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Loading...
@@ -144,6 +173,13 @@ export default function SearchResults() {
                     'Load More Recipes'
                   )}
                 </Button>
+              </div>
+            )}
+
+            {/* All Results Loaded Message */}
+            {!hasNextPage && allResults.length > 0 && (
+              <div className="text-center py-8 text-gray-500 font-lato">
+                <p>You've reached the end of the results</p>
               </div>
             )}
           </>

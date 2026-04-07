@@ -1,0 +1,242 @@
+{
+  "recipes": [
+    {
+      "id": 1,
+      "title": "Classic Spaghetti Carbonara",
+      "image": "https://via.placeholder.com/300x200?text=Spaghetti+Carbonara",
+      "readyInMinutes": 20,
+      "servings": 4,
+      "sourceUrl": "https://example.com/recipes/carbonara",
+      "cuisines": ["Italian"],
+      "diets": [],
+      "difficulty": "easy",
+      "calories": 450,
+      "summary": "A traditional Italian pasta dish with eggs, cheese, and guanciale.",
+      "instructions": "1. Cook spaghetti in salted boiling water. 2. Fry guanciale until crispy. 3. Mix eggs and cheese. 4. Combine pasta with guanciale and egg mixture. 5. Serve immediately.",
+      "extendedIngredients": [
+        { "id": 1, "original": "400g spaghetti", "name": "spaghetti", "amount": 400, "unit": "g" },
+        { "id": 2, "original": "200g guanciale", "name": "guanciale", "amount": 200, "unit": "g" },
+        { "id": 3, "original": "4 eggs", "name": "eggs", "amount": 4, "unit": "whole" },
+        { "id": 4, "original": "100g Pecorino Romano", "name": "pecorino romano", "amount": 100, "unit": "g" }
+      ],
+      "analyzedInstructions": [
+        {
+          "name": "Preparation",
+          "steps": [
+            { "number": 1, "step": "Cook spaghetti in salted boiling water until al dente" },
+            { "number": 2, "step": "Fry guanciale until crispy" },
+            { "number": 3, "step": "Mix eggs and grated cheese in a bowl" },
+            { "number": 4, "step": "Combine hot pasta with guanciale and egg mixture" },
+            { "number": 5, "step": "Serve immediately with black pepper" }
+          ]
+        }
+      ],
+      "nutrition": {
+        "nutrients": [
+          { "name": "Calories", "amount": 450, "unit": "kcal" },
+          { "name": "Protein", "amount": 18, "unit": "g" },
+          { "name": "Carbs", "amount": 55, "unit": "g" },
+          { "name": "Fat", "amount": 15, "unit": "g" }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "title": "Vegetable Fried Rice",
+      "image": "https://via.placeholder.com/300x200?text=Fried+Rice",
+      "readyInMinutes": 15,
+      "servings": 4,
+      "sourceUrl": "https://example.com/recipes/fried-rice",
+      "cuisines": ["Asian"],
+      "diets": ["Vegetarian"],
+      "difficulty": "easy",
+      "calories": 280,
+      "summary": "Quick and easy vegetable fried rice with a savory soy sauce flavor.",
+      "instructions": "1. Heat oil in wok. 2. Stir-fry vegetables. 3. Add cooked rice. 4. Season with soy sauce. 5. Serve hot.",
+      "extendedIngredients": [
+        { "id": 1, "original": "3 cups cooked rice", "name": "rice", "amount": 3, "unit": "cups" },
+        { "id": 2, "original": "2 cups mixed vegetables", "name": "vegetables", "amount": 2, "unit": "cups" },
+        { "id": 3, "original": "3 tbsp soy sauce", "name": "soy sauce", "amount": 3, "unit": "tbsp" },
+        { "id": 4, "original": "2 eggs", "name": "eggs", "amount": 2, "unit": "whole" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 3,
+      "title": "Tomato Soup",
+      "image": "https://via.placeholder.com/300x200?text=Tomato+Soup",
+      "readyInMinutes": 25,
+      "servings": 4,
+      "sourceUrl": "https://example.com/recipes/tomato-soup",
+      "cuisines": ["Italian"],
+      "diets": ["Vegetarian", "Vegan"],
+      "difficulty": "easy",
+      "calories": 150,
+      "summary": "Creamy tomato soup perfect for cold days.",
+      "instructions": "1. Sauté onions and garlic. 2. Add tomatoes. 3. Simmer for 15 minutes. 4. Blend until smooth. 5. Add cream and serve.",
+      "extendedIngredients": [
+        { "id": 1, "original": "800g canned tomatoes", "name": "tomatoes", "amount": 800, "unit": "g" },
+        { "id": 2, "original": "1 onion", "name": "onion", "amount": 1, "unit": "whole" },
+        { "id": 3, "original": "3 cloves garlic", "name": "garlic", "amount": 3, "unit": "cloves" },
+        { "id": 4, "original": "200ml cream", "name": "cream", "amount": 200, "unit": "ml" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 4,
+      "title": "Caesar Salad",
+      "image": "https://via.placeholder.com/300x200?text=Caesar+Salad",
+      "readyInMinutes": 10,
+      "servings": 2,
+      "sourceUrl": "https://example.com/recipes/caesar-salad",
+      "cuisines": ["American"],
+      "diets": ["Vegetarian"],
+      "difficulty": "easy",
+      "calories": 200,
+      "summary": "Classic Caesar salad with homemade dressing.",
+      "instructions": "1. Tear romaine lettuce. 2. Make Caesar dressing. 3. Toss salad with dressing. 4. Add croutons and parmesan. 5. Serve immediately.",
+      "extendedIngredients": [
+        { "id": 1, "original": "1 head romaine lettuce", "name": "romaine lettuce", "amount": 1, "unit": "whole" },
+        { "id": 2, "original": "50g parmesan", "name": "parmesan", "amount": 50, "unit": "g" },
+        { "id": 3, "original": "100g croutons", "name": "croutons", "amount": 100, "unit": "g" },
+        { "id": 4, "original": "3 tbsp Caesar dressing", "name": "caesar dressing", "amount": 3, "unit": "tbsp" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 5,
+      "title": "Chicken Tikka Masala",
+      "image": "https://via.placeholder.com/300x200?text=Tikka+Masala",
+      "readyInMinutes": 45,
+      "servings": 4,
+      "sourceUrl": "https://example.com/recipes/tikka-masala",
+      "cuisines": ["Indian"],
+      "diets": [],
+      "difficulty": "medium",
+      "calories": 380,
+      "summary": "Creamy Indian chicken curry with aromatic spices.",
+      "instructions": "1. Marinate chicken in yogurt and spices. 2. Cook chicken. 3. Make tomato cream sauce. 4. Combine chicken and sauce. 5. Serve with rice.",
+      "extendedIngredients": [
+        { "id": 1, "original": "800g chicken breast", "name": "chicken breast", "amount": 800, "unit": "g" },
+        { "id": 2, "original": "200ml yogurt", "name": "yogurt", "amount": 200, "unit": "ml" },
+        { "id": 3, "original": "400ml tomato sauce", "name": "tomato sauce", "amount": 400, "unit": "ml" },
+        { "id": 4, "original": "200ml cream", "name": "cream", "amount": 200, "unit": "ml" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 6,
+      "title": "Beef Tacos",
+      "image": "https://via.placeholder.com/300x200?text=Beef+Tacos",
+      "readyInMinutes": 20,
+      "servings": 4,
+      "sourceUrl": "https://example.com/recipes/beef-tacos",
+      "cuisines": ["Mexican"],
+      "diets": [],
+      "difficulty": "easy",
+      "calories": 320,
+      "summary": "Quick and delicious beef tacos with fresh toppings.",
+      "instructions": "1. Brown ground beef. 2. Add taco seasoning. 3. Warm tortillas. 4. Assemble tacos. 5. Add toppings and serve.",
+      "extendedIngredients": [
+        { "id": 1, "original": "500g ground beef", "name": "ground beef", "amount": 500, "unit": "g" },
+        { "id": 2, "original": "8 tortillas", "name": "tortillas", "amount": 8, "unit": "whole" },
+        { "id": 3, "original": "2 tbsp taco seasoning", "name": "taco seasoning", "amount": 2, "unit": "tbsp" },
+        { "id": 4, "original": "200g lettuce", "name": "lettuce", "amount": 200, "unit": "g" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 7,
+      "title": "Grilled Salmon",
+      "image": "https://via.placeholder.com/300x200?text=Grilled+Salmon",
+      "readyInMinutes": 20,
+      "servings": 2,
+      "sourceUrl": "https://example.com/recipes/grilled-salmon",
+      "cuisines": ["American"],
+      "diets": [],
+      "difficulty": "easy",
+      "calories": 350,
+      "summary": "Healthy grilled salmon with lemon and herbs.",
+      "instructions": "1. Season salmon with herbs. 2. Grill for 8-10 minutes. 3. Add lemon juice. 4. Serve with vegetables.",
+      "extendedIngredients": [
+        { "id": 1, "original": "400g salmon fillet", "name": "salmon fillet", "amount": 400, "unit": "g" },
+        { "id": 2, "original": "1 lemon", "name": "lemon", "amount": 1, "unit": "whole" },
+        { "id": 3, "original": "2 tbsp olive oil", "name": "olive oil", "amount": 2, "unit": "tbsp" },
+        { "id": 4, "original": "Fresh herbs", "name": "herbs", "amount": 1, "unit": "bunch" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 8,
+      "title": "Vegetable Stir Fry",
+      "image": "https://via.placeholder.com/300x200?text=Stir+Fry",
+      "readyInMinutes": 15,
+      "servings": 3,
+      "sourceUrl": "https://example.com/recipes/stir-fry",
+      "cuisines": ["Asian"],
+      "diets": ["Vegetarian", "Vegan"],
+      "difficulty": "easy",
+      "calories": 180,
+      "summary": "Quick vegetable stir fry with soy sauce.",
+      "instructions": "1. Heat wok. 2. Stir fry vegetables. 3. Add sauce. 4. Serve over rice.",
+      "extendedIngredients": [
+        { "id": 1, "original": "3 cups mixed vegetables", "name": "vegetables", "amount": 3, "unit": "cups" },
+        { "id": 2, "original": "3 tbsp soy sauce", "name": "soy sauce", "amount": 3, "unit": "tbsp" },
+        { "id": 3, "original": "2 tbsp sesame oil", "name": "sesame oil", "amount": 2, "unit": "tbsp" },
+        { "id": 4, "original": "2 cloves garlic", "name": "garlic", "amount": 2, "unit": "cloves" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 9,
+      "title": "Margherita Pizza",
+      "image": "https://via.placeholder.com/300x200?text=Margherita+Pizza",
+      "readyInMinutes": 30,
+      "servings": 2,
+      "sourceUrl": "https://example.com/recipes/margherita-pizza",
+      "cuisines": ["Italian"],
+      "diets": ["Vegetarian"],
+      "difficulty": "medium",
+      "calories": 280,
+      "summary": "Classic Italian pizza with fresh mozzarella and basil.",
+      "instructions": "1. Prepare pizza dough. 2. Add tomato sauce. 3. Add mozzarella. 4. Bake at 220°C. 5. Add fresh basil.",
+      "extendedIngredients": [
+        { "id": 1, "original": "400g pizza dough", "name": "pizza dough", "amount": 400, "unit": "g" },
+        { "id": 2, "original": "200ml tomato sauce", "name": "tomato sauce", "amount": 200, "unit": "ml" },
+        { "id": 3, "original": "200g mozzarella", "name": "mozzarella", "amount": 200, "unit": "g" },
+        { "id": 4, "original": "Fresh basil", "name": "basil", "amount": 1, "unit": "bunch" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    },
+    {
+      "id": 10,
+      "title": "Pad Thai",
+      "image": "https://via.placeholder.com/300x200?text=Pad+Thai",
+      "readyInMinutes": 20,
+      "servings": 2,
+      "sourceUrl": "https://example.com/recipes/pad-thai",
+      "cuisines": ["Thai"],
+      "diets": [],
+      "difficulty": "medium",
+      "calories": 350,
+      "summary": "Popular Thai noodle dish with peanut sauce.",
+      "instructions": "1. Cook rice noodles. 2. Stir fry with vegetables. 3. Add peanut sauce. 4. Garnish with peanuts. 5. Serve hot.",
+      "extendedIngredients": [
+        { "id": 1, "original": "300g rice noodles", "name": "rice noodles", "amount": 300, "unit": "g" },
+        { "id": 2, "original": "200g shrimp", "name": "shrimp", "amount": 200, "unit": "g" },
+        { "id": 3, "original": "3 tbsp peanut sauce", "name": "peanut sauce", "amount": 3, "unit": "tbsp" },
+        { "id": 4, "original": "2 eggs", "name": "eggs", "amount": 2, "unit": "whole" }
+      ],
+      "analyzedInstructions": [],
+      "nutrition": {}
+    }
+  ]
+}
