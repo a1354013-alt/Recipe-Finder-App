@@ -38,7 +38,7 @@ export function generateCsrfToken(): string {
  * 4. 驗證失敗回傳 403
  */
 export function csrfMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const requestId = (req as any).id;
+  const requestId = req.id;
 
   // 若 cookie 不存在，生成新 token
   if (!req.cookies[CSRF_COOKIE_NAME]) {

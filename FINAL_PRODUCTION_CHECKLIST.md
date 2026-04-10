@@ -27,6 +27,8 @@
 - No committed build output is required
 - Temporary logs and old tool artifacts are excluded
 - Shared placeholder image fallback is present and valid
+- Release package excludes `.git/`, `node_modules/`, local env files, and stale build output
+- `pnpm release:prepare` is the canonical way to stage a clean deliverable
 
 ## Architecture
 

@@ -25,6 +25,7 @@ pnpm check
 pnpm test
 pnpm build
 pnpm start
+pnpm release:prepare
 ```
 
 ## Probe Validation
@@ -53,3 +54,11 @@ Expected behavior:
 - Shopping list flow works
 - AI history page loads
 - Placeholder image URLs resolve
+
+## Release Artifact Rules
+
+- Do not package `.git/`
+- Do not package `node_modules/`
+- Do not package `dist/` from previous builds
+- Do not package temp logs, debug folders, or unrelated archives
+- Use `pnpm release:prepare` to produce the clean release staging directory

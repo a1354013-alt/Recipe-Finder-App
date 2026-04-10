@@ -8,6 +8,8 @@ type UseAuthOptions = {
   redirectPath?: string;
 };
 
+const LEGACY_MANUS_USER_INFO_KEY = "manus-runtime-user-info";
+
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = LOGIN_URL } =
     options ?? {};
@@ -36,6 +38,9 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(LEGACY_MANUS_USER_INFO_KEY);
+      }
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
@@ -58,12 +63,9 @@ export function useAuth(options?: UseAuthOptions) {
 
   // 儲存用戶信息到 localStorage（副作用應在 useEffect 中）
   useEffect(() => {
-    if (meQuery.data) {
-      localStorage.setItem(
-        "manus-runtime-user-info",
-        JSON.stringify(meQuery.data)
-      );
-    }
+    if (typeof window === "undefined") return;
+
+    localStorage.removeItem(LEGACY_MANUS_USER_INFO_KEY);
   }, [meQuery.data]);
 
   useEffect(() => {

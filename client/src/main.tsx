@@ -1,12 +1,33 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import superjson from "superjson";
+import type { AppRouter } from "../../server/routers";
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { trpc } from './lib/trpc'
 import './index.css'
 import { toast } from 'sonner';
+
+type TrpcResponseMeta = {
+  response?: {
+    headers?: Headers;
+  };
+};
+
+function getRequestIdFromError(error: TRPCClientError<AppRouter>): string | undefined {
+  if (typeof error.data?.requestId === "string") {
+    return error.data.requestId;
+  }
+
+  const meta = error.meta as unknown;
+  if (typeof meta !== "object" || meta === null || !("response" in meta)) {
+    return undefined;
+  }
+
+  const responseMeta = meta as TrpcResponseMeta;
+  return responseMeta.response?.headers?.get("x-request-id") ?? undefined;
+}
 
 /**
  * Custom retry logic:
@@ -70,7 +91,7 @@ function handleTRPCError(error: unknown, context: string) {
   if (!(error instanceof TRPCClientError)) return;
 
   // Extract requestId for error tracking
-  const requestId = error.data?.requestId || (error.meta as any)?.response?.headers?.get?.("x-request-id");
+  const requestId = getRequestIdFromError(error);
   const errorCode = error.data?.code;
   
   // Build error message based on error type

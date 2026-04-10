@@ -48,6 +48,7 @@ export function requestIdMiddleware(
   (req as any).id = requestId;
   
   // 設定 response header
+  req.id = requestId;
   res.setHeader("x-request-id", requestId);
   
   next();

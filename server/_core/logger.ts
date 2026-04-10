@@ -83,6 +83,10 @@ interface LogEntry {
   data?: Record<string, unknown>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * 敏感資訊遮罩清單
  */
@@ -108,7 +112,7 @@ class Logger {
    * 遮罩敏感資訊
    * 例："abc123def456" → "abc123...def456"
    */
-  private redactSensitiveValue(value: any): any {
+  private redactSensitiveValue(value: unknown): unknown {
     if (typeof value !== "string") return value;
     if (value.length <= 10) return "***";
     return value.substring(0, 6) + "..." + value.substring(value.length - 4);
@@ -117,14 +121,14 @@ class Logger {
   /**
    * 遞迴遮罩敏感資訊
    */
-  private redactData(data: any): any {
+  private redactData(data: unknown): unknown {
     if (!data || typeof data !== "object") return data;
     
     if (Array.isArray(data)) {
       return data.map(item => this.redactData(item));
     }
 
-    const redacted: any = {};
+    const redacted: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       const lowerKey = key.toLowerCase();
       if (SENSITIVE_KEYS.some(sensitive => lowerKey.includes(sensitive))) {
@@ -230,7 +234,7 @@ class Logger {
       };
     } else if (typeof message === "object" && message !== null) {
       // 如果 message 是 object，轉成 data
-      normalizedData = { ...message, ...data };
+      normalizedData = { ...(isRecord(message) ? message : {}), ...data };
       normalizedMessage = "";
     }
 
@@ -306,7 +310,7 @@ class Logger {
       msg = message.message;
       d = { ...d, stack: message.stack };
     } else if (typeof message === "object" && message !== null) {
-      d = { ...message, ...data };
+      d = { ...(isRecord(message) ? message : {}), ...data };
       msg = "";
     }
 

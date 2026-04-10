@@ -1,7 +1,9 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const templateRoot = path.resolve(import.meta.dirname);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const templateRoot = path.resolve(__dirname);
 
 export default defineConfig({
   root: templateRoot,
@@ -14,6 +16,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    include: [
+      "server/**/*.test.ts",
+      "server/**/*.spec.ts",
+      "client/**/*.test.ts",
+      "client/**/*.spec.ts",
+    ],
   },
 });

@@ -31,6 +31,7 @@ pnpm test
 pnpm build
 pnpm start
 pnpm preview
+pnpm release:prepare
 ```
 
 If `pnpm` is not installed yet:
@@ -98,6 +99,24 @@ Build output:
 
 Production static serving is wired to `dist/public`, so build output and runtime behavior match.
 
+## Clean Release Packaging
+
+Source control metadata, installed dependencies, and stale build output are not part of the release artifact. To produce a clean staging directory:
+
+```bash
+pnpm release:prepare
+```
+
+This creates `release/recipe-finder-app/` and excludes:
+
+- `.git/`
+- `node_modules/`
+- `dist/`
+- temporary logs and debug folders
+- unrelated archives and local env files
+
+If you need a zip or tarball, archive that generated directory instead of packaging the repository root.
+
 ## Health and Readiness
 
 HTTP endpoints for deployment probes:
@@ -147,4 +166,4 @@ Deployment probes should target:
 
 ## Release Cleanliness
 
-Build artifacts are generated into `dist/` and should be recreated during CI or deployment. The repository should stay free of unrelated archives, stale dist folders, and transient log directories.
+Build artifacts are generated into `dist/` and should be recreated during CI or deployment. The repository should stay free of unrelated archives, stale dist folders, and transient log directories. Use `pnpm release:prepare` when producing a formal deliverable.

@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import { createServer } from "http";
 import net from "net";
 import cookieParser from "cookie-parser";
@@ -14,7 +14,12 @@ import { logger } from "./logger";
 import { closePool } from "../db";
 import { requestIdMiddleware } from "./requestId";
 import { csrfMiddleware } from "./csrf";
-import { dbPing } from "../db";
+import { registerHealthRoutes } from "./health";
+
+type AppError = Error & {
+  status?: number;
+  statusCode?: number;
+};
 
 /**
  * 檢查 port 是否可用
@@ -120,52 +125,7 @@ async function startServer() {
     registerOAuthRoutes(app);
 
     // tRPC API
-    app.get("/api/health", (_req, res) => {
-      res.status(200).json({
-        ok: true,
-        version: process.env.npm_package_version ?? "unknown",
-        env: process.env.NODE_ENV || "development",
-        uptimeSec: Math.floor(process.uptime()),
-      });
-    });
-
-    app.get("/api/ready", async (req, res) => {
-      const startTime = Date.now();
-      try {
-        await Promise.race([
-          dbPing(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("DB ping timeout")), 3000)
-          ),
-        ]);
-
-        res.status(200).json({
-          ok: true,
-          version: process.env.npm_package_version ?? "unknown",
-          env: process.env.NODE_ENV || "development",
-          uptimeSec: Math.floor(process.uptime()),
-          checkDurationMs: Date.now() - startTime,
-        });
-      } catch (error) {
-        logger.warn(
-          "[READY] HTTP readiness check failed",
-          {
-            reason: error instanceof Error ? error.message : String(error),
-          },
-          undefined,
-          (req as typeof req & { id?: string }).id
-        );
-
-        res.status(503).json({
-          ok: false,
-          reason: error instanceof Error ? error.message : String(error),
-          version: process.env.npm_package_version ?? "unknown",
-          env: process.env.NODE_ENV || "development",
-          uptimeSec: Math.floor(process.uptime()),
-          checkDurationMs: Date.now() - startTime,
-        });
-      }
-    });
+    registerHealthRoutes(app);
 
     app.use(
       "/api/trpc",
@@ -183,7 +143,7 @@ async function startServer() {
     }
 
     // Global error handler (MUST be after all routes and middleware)
-    app.use((err: any, req: any, res: any, next: any) => {
+    app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
       if (res.headersSent) {
         logger.debug(
           "[Error] Headers already sent",

@@ -13,7 +13,7 @@ export type TrpcContext = {
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
-  const requestId = (opts.req as any).id || "unknown";
+  const requestId = opts.req.id || "unknown";
   let user: User | null = null;
 
   try {

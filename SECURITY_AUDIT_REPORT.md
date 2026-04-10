@@ -25,6 +25,7 @@ pnpm install
 pnpm check
 pnpm test
 pnpm build
+pnpm release:prepare
 curl http://localhost:3000/api/health
 curl http://localhost:3000/api/ready
 ```

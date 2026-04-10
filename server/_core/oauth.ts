@@ -81,7 +81,7 @@ export function registerOAuthRoutes(app: Express) {
         logger.error(
           "[OAuth] PUBLIC_BASE_URL not configured",
           { message: "Cannot proceed with login" },
-          (req as any).id
+          req.id
         );
         res.status(500).json({ error: "Server configuration error" });
         return;
@@ -92,7 +92,8 @@ export function registerOAuthRoutes(app: Express) {
       logger.info(
         "[OAuth] Generated state",
         { state: state.substring(0, 8) + "..." },
-        (req as any).id
+        undefined,
+        req.id
       );
 
       // 將 state 存入 httpOnly cookie
@@ -102,7 +103,7 @@ export function registerOAuthRoutes(app: Express) {
         maxAge: STATE_COOKIE_MAX_AGE_MS,
         sameSite: "lax", // 明確設定跨站策略，避免瀏覽器預設改變
       });
-      logger.info("[OAuth] State stored in httpOnly cookie", "State cookie set", undefined, undefined, (req as any).id);
+      logger.info("[OAuth] State stored in httpOnly cookie", "State cookie set", undefined, undefined, req.id);
 
       // 構建 OAuth 登入 URL
       // 使用 PUBLIC_BASE_URL（固定化，禁止 x-forwarded-host 注入）
@@ -119,7 +120,8 @@ export function registerOAuthRoutes(app: Express) {
       logger.info(
         "[OAuth] Login URL generated",
         { redirectUri, oAuthUrl: url.toString() },
-        (req as any).id
+        undefined,
+        req.id
       );
       res.redirect(url.toString());
     } catch (error) {
@@ -127,7 +129,7 @@ export function registerOAuthRoutes(app: Express) {
         "[OAuth] Failed to generate login URL",
         error instanceof Error ? error : new Error(String(error)),
         undefined,
-        (req as any).id
+        req.id
       );
       res.status(500).json({ error: "Failed to generate login URL" });
     }
@@ -154,7 +156,7 @@ export function registerOAuthRoutes(app: Express) {
     const code = getQueryParam(req, "code");
     const queryState = getQueryParam(req, "state");
     const cookieState = req.cookies[STATE_COOKIE_NAME];
-    const requestId = (req as any).id;
+    const requestId = req.id;
 
     // 驗證 code 存在
     if (!code) {
@@ -175,6 +177,7 @@ export function registerOAuthRoutes(app: Express) {
       logger.warn(
         "[OAuth] Invalid state format",
         { state: queryState },
+        undefined,
         requestId
       );
       res.redirect(302, `/?error=INVALID_STATE&rid=${requestId}`);
@@ -186,6 +189,7 @@ export function registerOAuthRoutes(app: Express) {
       logger.warn(
         "[OAuth] State cookie missing",
         { cookies: Object.keys(req.cookies) },
+        undefined,
         requestId
       );
       res.redirect(302, `/?error=MISSING_STATE_COOKIE&rid=${requestId}`);
@@ -200,6 +204,7 @@ export function registerOAuthRoutes(app: Express) {
           queryState: queryState.substring(0, 8) + "...",
           cookieState: cookieState.substring(0, 8) + "...",
         },
+        undefined,
         requestId
       );
       res.redirect(302, `/?error=STATE_MISMATCH&rid=${requestId}`);
@@ -213,6 +218,7 @@ export function registerOAuthRoutes(app: Express) {
           code: code.substring(0, 10) + "...",
           state: queryState.substring(0, 8) + "...",
         },
+        undefined,
         requestId
       );
 
@@ -232,6 +238,7 @@ export function registerOAuthRoutes(app: Express) {
         logger.warn(
           "[OAuth] Token exchange failed",
           { error: error instanceof Error ? error.message : String(error) },
+          undefined,
           requestId
         );
         res.redirect(302, `/?error=TOKEN_EXCHANGE_FAILED&rid=${requestId}`);
@@ -245,12 +252,14 @@ export function registerOAuthRoutes(app: Express) {
         logger.info(
           "[OAuth] User info retrieved",
           { openId: userInfo.openId },
+          undefined,
           requestId
         );
       } catch (error) {
         logger.warn(
           "[OAuth] Failed to retrieve user info",
           { error: error instanceof Error ? error.message : String(error) },
+          undefined,
           requestId
         );
         res.redirect(302, `/?error=USER_INFO_FAILED&rid=${requestId}`);
@@ -279,6 +288,7 @@ export function registerOAuthRoutes(app: Express) {
             hasName: !!userInfo.name,
             hasEmail: !!userInfo.email,
           },
+          undefined,
           requestId
         );
       } catch (error) {
@@ -288,6 +298,7 @@ export function registerOAuthRoutes(app: Express) {
             openId: userInfo.openId,
             error: error instanceof Error ? error.message.substring(0, 100) : String(error),
           },
+          undefined,
           requestId
         );
         res.redirect(302, `/?error=USER_SYNC_FAILED&rid=${requestId}`);
@@ -316,6 +327,7 @@ export function registerOAuthRoutes(app: Express) {
       logger.info(
         "[OAuth] Callback successful, redirecting to home",
         {},
+        undefined,
         requestId
       );
 
@@ -328,11 +340,12 @@ export function registerOAuthRoutes(app: Express) {
         logger.warn(
           "[OAuth] Failed to log audit event",
           { error: err instanceof Error ? err.message : String(err) },
+          undefined,
           requestId
         );
       });
 
-      res.redirect(302, ENV.postLoginRedirect);
+      res.redirect(302, ENV.postLoginRedirect || "/");
     } catch (error) {
       logger.error(
         "[OAuth] Callback failed",

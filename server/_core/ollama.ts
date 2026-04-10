@@ -7,6 +7,12 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { logger } from './logger';
+import {
+  AIRecognizeIngredientsResult,
+  AIRecipeRecommendationsResult,
+  aiRecognizeIngredientsResultSchema,
+  aiRecipeRecommendationsResultSchema,
+} from '../services/ai/types';
 
 export interface OllamaConfig {
   baseUrl: string;
@@ -33,6 +39,12 @@ export interface OllamaResponse {
   eval_count: number;
   eval_duration: number;
 }
+
+type OllamaTagResponse = {
+  models?: Array<{
+    name?: string;
+  }>;
+};
 
 export class OllamaClient {
   private client: AxiosInstance;
@@ -69,8 +81,10 @@ export class OllamaClient {
    */
   async getAvailableModels(requestId?: string): Promise<string[]> {
     try {
-      const response = await this.client.get('/api/tags');
-      return response.data.models.map((m: any) => m.name);
+      const response = await this.client.get<OllamaTagResponse>('/api/tags');
+      return (response.data.models ?? [])
+        .map((model) => model.name)
+        .filter((name): name is string => typeof name === "string" && name.length > 0);
     } catch (error) {
       logger.error(
         '[Ollama] Failed to get models',
@@ -108,7 +122,11 @@ export class OllamaClient {
   /**
    * Recognize ingredients from image using Ollama with vision capabilities
    */
-  async recognizeIngredients(_imageBase64: string, imageUrl?: string): Promise<any> {
+  async recognizeIngredients(
+    _imageBase64: string,
+    imageUrl?: string,
+    requestId?: string
+  ): Promise<AIRecognizeIngredientsResult> {
     try {
       const systemPrompt = `You are an expert food and ingredient recognition AI. Analyze the provided image and identify all visible food ingredients. 
 Return a JSON object with the following structure:
@@ -139,7 +157,7 @@ Return a JSON object with the following structure:
         },
       ];
 
-      const response = await this.chat(messages);
+      const response = await this.chat(messages, undefined, requestId);
 
       // Extract JSON from response
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -147,7 +165,7 @@ Return a JSON object with the following structure:
         throw new Error('No JSON found in response');
       }
 
-      return JSON.parse(jsonMatch[0]);
+      return aiRecognizeIngredientsResultSchema.parse(JSON.parse(jsonMatch[0]));
     } catch (error) {
       logger.error(
         '[Ollama] Ingredient recognition error',
@@ -163,7 +181,11 @@ Return a JSON object with the following structure:
   /**
    * Get recipe recommendations based on ingredients
    */
-  async getRecipeRecommendations(ingredients: string[], maxRecipes: number = 5): Promise<any> {
+  async getRecipeRecommendations(
+    ingredients: string[],
+    maxRecipes: number = 5,
+    requestId?: string
+  ): Promise<AIRecipeRecommendationsResult> {
     try {
       const ingredientsList = ingredients.join(', ');
 
@@ -195,7 +217,7 @@ Return a JSON object with the following structure:
         },
       ];
 
-      const response = await this.chat(messages);
+      const response = await this.chat(messages, undefined, requestId);
 
       // Extract JSON from response
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -203,7 +225,7 @@ Return a JSON object with the following structure:
         throw new Error('No JSON found in response');
       }
 
-      return JSON.parse(jsonMatch[0]);
+      return aiRecipeRecommendationsResultSchema.parse(JSON.parse(jsonMatch[0]));
     } catch (error) {
       logger.error(
         '[Ollama] Recipe recommendation error',

@@ -16,7 +16,7 @@ export default defineConfig({
   server: {
     middlewareMode: false,
   },
-  publicDir: path.resolve(import.meta.dirname, "client", "public"),
+  publicDir: path.resolve(__dirname, "client", "public"),
   build: {
     // 輸出到 ../dist/public（相對於 root=client）
     // 這樣 production server 會在 dist/public 找到 index.html
