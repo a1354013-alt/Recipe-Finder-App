@@ -7,11 +7,13 @@
  */
 
 import {
-  getUserAIRecognitionHistory,
   deleteAIRecognitionHistory,
+  getAIRecognitionHistoryByIdForUser,
+  getUserAIRecognitionHistory,
 } from '../db';
 import { logger } from '../_core/logger';
 import { TRPCError } from '@trpc/server';
+import type { AIHistoryRecord } from "../../shared/types";
 
 /**
  * Get user AI recognition history
@@ -20,7 +22,7 @@ export async function getUserHistory(
   userId: number,
   limit?: number,
   requestId?: string
-): Promise<any[]> {
+): Promise<AIHistoryRecord[]> {
   try {
     logger.info(
       '[AIHistoryService] Fetching user AI history',
@@ -63,8 +65,7 @@ export async function deleteHistory(
     );
 
     // Verify ownership by checking if history belongs to user
-    const history = await getUserAIRecognitionHistory(userId);
-    const record = history.find((h: any) => h.id === historyId);
+    const record = await getAIRecognitionHistoryByIdForUser(userId, historyId);
 
     if (!record) {
       throw new TRPCError({

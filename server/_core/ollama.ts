@@ -108,7 +108,7 @@ export class OllamaClient {
   /**
    * Recognize ingredients from image using Ollama with vision capabilities
    */
-  async recognizeIngredients(imageBase64: string, imageUrl?: string): Promise<any> {
+  async recognizeIngredients(_imageBase64: string, imageUrl?: string): Promise<any> {
     try {
       const systemPrompt = `You are an expert food and ingredient recognition AI. Analyze the provided image and identify all visible food ingredients. 
 Return a JSON object with the following structure:

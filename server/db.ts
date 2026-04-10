@@ -1,99 +1,83 @@
-import { eq, and, desc, count } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { and, count, desc, eq } from "drizzle-orm";
+import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
-import { logger } from './_core/logger';
+import * as schema from "../drizzle/schema";
+import type { InsertUser } from "../drizzle/schema";
+import type {
+  AIHistoryRecord,
+  FavoriteListItem,
+  ShoppingListItemRecord,
+  ShoppingListSummary,
+} from "../shared/types";
+import { ENV } from "./_core/env";
+import { logger } from "./_core/logger";
 
-let _db: any = null; // Drizzle ORM 實例
+let _db: MySql2Database<typeof schema> | null = null;
 let _pool: mysql.Pool | null = null;
 
-/**
- * 建立 MySQL 連接池
- * 
- * 修正前：直接將 DATABASE_URL 字串傳給 drizzle
- * 修正後：
- * - 使用 mysql2/promise 建立連接池
- * - 支援連接池管理（連接復用、自動重連）
- * - 更安全的連接管理
- */
 async function createConnectionPool(): Promise<mysql.Pool> {
   if (_pool) {
     return _pool;
   }
 
-  try {
-    const databaseUrl = ENV.databaseUrl;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL environment variable is not set");
-    }
-
-    // 解析 DATABASE_URL
-    // 格式：mysql://user:password@host:port/database
-    const url = new URL(databaseUrl);
-    const username = decodeURIComponent(url.username);
-    const password = decodeURIComponent(url.password);
-    const hostname = url.hostname;
-    const port = url.port ? parseInt(url.port) : 3306;
-    const database = url.pathname.slice(1); // 移除開頭的 /
-
-    logger.info("[DB] Creating connection pool", "Connecting to database", {
-      host: hostname,
-      port,
-      database,
-      user: username,
-    });
-
-    _pool = mysql.createPool({
-      host: hostname,
-      port,
-      user: username,
-      password,
-      database,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
-    });
-
-    // 測試連接
-    const connection = await _pool.getConnection();
-    await connection.ping();
-    connection.release();
-
-    logger.info("[DB] Connection pool created successfully");
-    return _pool;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to create connection pool", { error: errorMessage });
-    throw error;
+  const databaseUrl = ENV.databaseUrl;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL environment variable is not set");
   }
+
+  const url = new URL(databaseUrl);
+  const username = decodeURIComponent(url.username);
+  const password = decodeURIComponent(url.password);
+  const hostname = url.hostname;
+  const port = url.port ? parseInt(url.port, 10) : 3306;
+  const database = url.pathname.slice(1);
+
+  logger.info("[DB] Creating connection pool", "Connecting to database", {
+    host: hostname,
+    port,
+    database,
+    user: username,
+  });
+
+  _pool = mysql.createPool({
+    host: hostname,
+    port,
+    user: username,
+    password,
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0,
+  });
+
+  const connection = await _pool.getConnection();
+  await connection.ping();
+  connection.release();
+
+  logger.info("[DB] Connection pool created successfully");
+  return _pool;
 }
 
-/**
- * 取得 Drizzle ORM 實例
- */
-export async function getDb() {
+export async function getDb(): Promise<MySql2Database<typeof schema> | null> {
   if (!_db) {
     try {
       const pool = await createConnectionPool();
-      _db = drizzle(pool);
+      _db = drizzle(pool, { schema, mode: "default" });
       logger.info("[DB] Drizzle ORM initialized");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("[DB] Failed to initialize Drizzle ORM", { error: errorMessage });
+      logger.error("[DB] Failed to initialize Drizzle ORM", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       _db = null;
     }
   }
+
   return _db;
 }
 
-/**
- * 取得 Drizzle ORM 實例或拋出錯誤
- * 用於關鍵路徑，確保 DB 初始化成功
- */
-export async function getDbOrThrow() {
+export async function getDbOrThrow(): Promise<MySql2Database<typeof schema>> {
   const db = await getDb();
   if (!db) {
     throw new Error("Database not initialized");
@@ -101,391 +85,269 @@ export async function getDbOrThrow() {
   return db;
 }
 
-/**
- * 檢查 DB 連接是否可用
- * 使用 connection.ping() 進行可靠的檢查
- */
 export async function dbPing(): Promise<void> {
   if (!_pool) {
-    throw new Error("Connection pool not initialized");
+    await createConnectionPool();
   }
 
   let connection: mysql.PoolConnection | null = null;
   try {
-    connection = await _pool.getConnection();
+    connection = await _pool!.getConnection();
     await connection.ping();
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    connection?.release();
   }
 }
 
-/**
- * Upsert 用戶
- * 
- * 邏輯：
- * - openId 必要（唯一鍵）
- * - 其他欄位可選
- * - 如果用戶已存在，更新指定欄位
- * - 如果用戶是 owner，自動設定為 admin
- */
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
 
   const db = await getDbOrThrow();
+  const values: InsertUser = { openId: user.openId };
+  const updateSet: Partial<InsertUser> = {};
 
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
+  const textFields = ["name", "email", "loginMethod"] as const;
+  for (const field of textFields) {
+    const value = user[field];
+    if (value !== undefined) {
+      values[field] = value ?? null;
+      updateSet[field] = value ?? null;
     }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-
-    logger.info("[DB] User upserted", "User record updated", { openId: user.openId });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to upsert user", { error: errorMessage, openId: user.openId });
-    throw error;
   }
+
+  if (user.lastSignedIn !== undefined) {
+    values.lastSignedIn = user.lastSignedIn;
+    updateSet.lastSignedIn = user.lastSignedIn;
+  } else {
+    values.lastSignedIn = new Date();
+    updateSet.lastSignedIn = values.lastSignedIn;
+  }
+
+  if (user.role !== undefined) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId) {
+    values.role = "admin";
+    updateSet.role = "admin";
+  }
+
+  await db
+    .insert(schema.users)
+    .values(values)
+    .onDuplicateKeyUpdate({ set: updateSet });
 }
 
-/**
- * 根據 openId 取得用戶
- */
-export async function getUserByOpenId(openId: string) {
+export async function getUserByOpenId(openId: string): Promise<schema.User | undefined> {
   const db = await getDbOrThrow();
-
-  try {
-    const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-    logger.info("[DB] User query completed", "Query executed", { openId, found: result.length > 0 });
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get user", { error: errorMessage, openId });
-    throw error;
-  }
+  const result = await db.select().from(schema.users).where(eq(schema.users.openId, openId)).limit(1);
+  return result[0];
 }
 
-/**
- * 關閉連接池（用於優雅關閉）
- */
 export async function closePool(): Promise<void> {
   if (_pool) {
-    try {
-      await _pool.end();
-      logger.info("[DB] Connection pool closed");
-      _pool = null;
-      _db = null;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("[DB] Failed to close connection pool", { error: errorMessage });
-    }
+    await _pool.end();
+    _pool = null;
+    _db = null;
+    logger.info("[DB] Connection pool closed");
   }
 }
 
-
-/**
- * ==========================================
- * Favorites 相關函數
- * ==========================================
- */
-
-export async function addFavorite(userId: number, recipeId: number, recipeName: string, recipeImage?: string) {
+export async function addFavorite(
+  userId: number,
+  recipeId: number,
+  recipeName: string,
+  recipeImage?: string
+): Promise<void> {
   const db = await getDbOrThrow();
-  const { favorites } = await import("../drizzle/schema");
-
-  try {
-    await db.insert(favorites).values({
-      userId,
-      recipeId,
-      recipeName,
-      recipeImage,
-    });
-    logger.info("[DB] Favorite added", "Recipe added to favorites", { userId, recipeId });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to add favorite", { error: errorMessage, userId, recipeId });
-    throw error;
-  }
+  await db.insert(schema.favorites).values({ userId, recipeId, recipeName, recipeImage });
 }
 
-export async function removeFavorite(userId: number, recipeId: number) {
+export async function removeFavorite(userId: number, recipeId: number): Promise<void> {
   const db = await getDbOrThrow();
-  const { favorites } = await import("../drizzle/schema");
-
-  try {
-    await db.delete(favorites).where(
-      and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId))
-    );
-    logger.info("[DB] Favorite removed", "Recipe removed from favorites", { userId, recipeId });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to remove favorite", { error: errorMessage, userId, recipeId });
-    throw error;
-  }
+  await db
+    .delete(schema.favorites)
+    .where(and(eq(schema.favorites.userId, userId), eq(schema.favorites.recipeId, recipeId)));
 }
 
-export async function getUserFavorites(userId: number) {
+export async function getUserFavorites(userId: number): Promise<FavoriteListItem[]> {
   const db = await getDbOrThrow();
-  const { favorites } = await import("../drizzle/schema");
-
-  try {
-    const result = await db.select().from(favorites).where(eq(favorites.userId, userId));
-    logger.info("[DB] Favorites retrieved", "User favorites fetched", { userId, count: result.length });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get favorites", { error: errorMessage, userId });
-    throw error;
-  }
+  return db.select().from(schema.favorites).where(eq(schema.favorites.userId, userId));
 }
 
 export async function isFavorited(userId: number, recipeId: number): Promise<boolean> {
   const db = await getDbOrThrow();
-  const { favorites } = await import("../drizzle/schema");
+  const result = await db
+    .select({ id: schema.favorites.id })
+    .from(schema.favorites)
+    .where(and(eq(schema.favorites.userId, userId), eq(schema.favorites.recipeId, recipeId)))
+    .limit(1);
 
-  try {
-    const result = await db.select().from(favorites).where(
-      and(eq(favorites.userId, userId), eq(favorites.recipeId, recipeId))
-    ).limit(1);
-    return result.length > 0;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to check favorite status", { error: errorMessage, userId, recipeId });
-    return false;
-  }
+  return result.length > 0;
 }
 
-/**
- * ==========================================
- * Shopping Lists 相關函數
- * ==========================================
- */
-
-export async function createShoppingList(userId: number, name: string, description?: string) {
+export async function createShoppingList(
+  userId: number,
+  name: string,
+  description?: string
+): Promise<schema.ShoppingList> {
   const db = await getDbOrThrow();
-  const { shoppingLists } = await import("../drizzle/schema");
+  const result = await db
+    .insert(schema.shoppingLists)
+    .values({ userId, name, description })
+    .$returningId();
 
-  try {
-    const result = await db.insert(shoppingLists).values({
-      userId,
-      name,
-      description,
-    }).returning();
-    const newList = result[0];
-    logger.info("[DB] Shopping list created", "New shopping list created", { userId, name, listId: newList?.id });
-    return newList;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to create shopping list", { error: errorMessage, userId });
-    throw error;
+  const listId = result[0]?.id;
+  if (!listId) {
+    throw new Error("Failed to create shopping list");
   }
+
+  const [list] = await db
+    .select()
+    .from(schema.shoppingLists)
+    .where(eq(schema.shoppingLists.id, listId))
+    .limit(1);
+
+  if (!list) {
+    throw new Error("Created shopping list could not be reloaded");
+  }
+
+  return list;
 }
 
-export async function getUserShoppingLists(userId: number) {
+export async function getUserShoppingLists(userId: number): Promise<ShoppingListSummary[]> {
   const db = await getDbOrThrow();
-  const { shoppingLists, shoppingListItems } = await import("../drizzle/schema");
-
-  try {
-    const result = await db
-      .select({
-        id: shoppingLists.id,
-        userId: shoppingLists.userId,
-        name: shoppingLists.name,
-        description: shoppingLists.description,
-        createdAt: shoppingLists.createdAt,
-        itemCount: count(shoppingListItems.id).as('itemCount'),
-      })
-      .from(shoppingLists)
-      .leftJoin(shoppingListItems, eq(shoppingLists.id, shoppingListItems.shoppingListId))
-      .where(eq(shoppingLists.userId, userId))
-      .groupBy(shoppingLists.id) as any;
-    logger.info("[DB] Shopping lists retrieved", "User shopping lists fetched", { userId, count: result.length });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get shopping lists", { error: errorMessage, userId });
-    throw error;
-  }
-}
-
-/**
- * Get shopping list by ID and verify ownership
- */
-export async function getShoppingListByIdForUser(userId: number, shoppingListId: number) {
-  const db = await getDbOrThrow();
-  const { shoppingLists } = await import("../drizzle/schema");
-
-  try {
-    const result = await db.select().from(shoppingLists)
-      .where(and(eq(shoppingLists.id, shoppingListId), eq(shoppingLists.userId, userId)))
-      .limit(1);
-    
-    return result.length > 0 ? result[0] : null;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get shopping list", { error: errorMessage, userId, shoppingListId });
-    throw error;
-  }
-}
-
-/**
- * Get shopping list item by ID and verify ownership through list
- */
-export async function getShoppingListItemByIdForUser(userId: number, itemId: number) {
-  const db = await getDbOrThrow();
-  const { shoppingListItems, shoppingLists } = await import("../drizzle/schema");
-
-  try {
-    const result = await db.select({
-      item: shoppingListItems,
-      list: shoppingLists,
+  const result = await db
+    .select({
+      id: schema.shoppingLists.id,
+      userId: schema.shoppingLists.userId,
+      name: schema.shoppingLists.name,
+      description: schema.shoppingLists.description,
+      createdAt: schema.shoppingLists.createdAt,
+      updatedAt: schema.shoppingLists.updatedAt,
+      itemCount: count(schema.shoppingListItems.id),
     })
-      .from(shoppingListItems)
-      .innerJoin(shoppingLists, eq(shoppingListItems.shoppingListId, shoppingLists.id))
-      .where(and(eq(shoppingListItems.id, itemId), eq(shoppingLists.userId, userId)))
-      .limit(1);
-    
-    return result.length > 0 ? result[0].item : null;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get shopping list item", { error: errorMessage, userId, itemId });
-    throw error;
-  }
+    .from(schema.shoppingLists)
+    .leftJoin(
+      schema.shoppingListItems,
+      eq(schema.shoppingLists.id, schema.shoppingListItems.shoppingListId)
+    )
+    .where(eq(schema.shoppingLists.userId, userId))
+    .groupBy(schema.shoppingLists.id);
+
+  return result.map(list => ({
+    ...list,
+    itemCount: Number(list.itemCount),
+  }));
 }
 
-export async function addShoppingListItem(shoppingListId: number, ingredient: string, quantity?: string, unit?: string) {
+export async function getShoppingListByIdForUser(
+  userId: number,
+  shoppingListId: number
+): Promise<schema.ShoppingList | null> {
   const db = await getDbOrThrow();
-  const { shoppingListItems } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(schema.shoppingLists)
+    .where(
+      and(eq(schema.shoppingLists.id, shoppingListId), eq(schema.shoppingLists.userId, userId))
+    )
+    .limit(1);
 
-  try {
-    await db.insert(shoppingListItems).values({
+  return result[0] ?? null;
+}
+
+export async function getShoppingListItemByIdForUser(
+  userId: number,
+  itemId: number
+): Promise<schema.ShoppingListItem | null> {
+  const db = await getDbOrThrow();
+  const result = await db
+    .select({ item: schema.shoppingListItems })
+    .from(schema.shoppingListItems)
+    .innerJoin(
+      schema.shoppingLists,
+      eq(schema.shoppingListItems.shoppingListId, schema.shoppingLists.id)
+    )
+    .where(and(eq(schema.shoppingListItems.id, itemId), eq(schema.shoppingLists.userId, userId)))
+    .limit(1);
+
+  return result[0]?.item ?? null;
+}
+
+export async function addShoppingListItem(
+  shoppingListId: number,
+  ingredient: string,
+  quantity?: string,
+  unit?: string
+): Promise<schema.ShoppingListItem> {
+  const db = await getDbOrThrow();
+  const result = await db
+    .insert(schema.shoppingListItems)
+    .values({
       shoppingListId,
       ingredient,
       quantity,
       unit,
       checked: 0,
-    });
-    logger.info("[DB] Shopping list item added", "Item added to shopping list", { shoppingListId, ingredient });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to add shopping list item", { error: errorMessage, shoppingListId });
-    throw error;
+    })
+    .$returningId();
+
+  const itemId = result[0]?.id;
+  if (!itemId) {
+    throw new Error("Failed to create shopping list item");
   }
+
+  const [item] = await db
+    .select()
+    .from(schema.shoppingListItems)
+    .where(eq(schema.shoppingListItems.id, itemId))
+    .limit(1);
+
+  if (!item) {
+    throw new Error("Created shopping list item could not be reloaded");
+  }
+
+  return item;
 }
 
-export async function getShoppingListItems(shoppingListId: number) {
+export async function getShoppingListItems(
+  shoppingListId: number
+): Promise<ShoppingListItemRecord[]> {
   const db = await getDbOrThrow();
-  const { shoppingListItems } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(schema.shoppingListItems)
+    .where(eq(schema.shoppingListItems.shoppingListId, shoppingListId));
 
-  try {
-    const result = await db.select().from(shoppingListItems).where(eq(shoppingListItems.shoppingListId, shoppingListId));
-    logger.info("[DB] Shopping list items retrieved", "Items fetched", { shoppingListId, count: result.length });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get shopping list items", { error: errorMessage, shoppingListId });
-    throw error;
-  }
+  return result.map(item => ({
+    ...item,
+    checked: item.checked === 1,
+  }));
 }
 
-export async function updateShoppingListItemStatus(itemId: number, checked: boolean) {
+export async function updateShoppingListItemStatus(
+  itemId: number,
+  checked: boolean
+): Promise<void> {
   const db = await getDbOrThrow();
-  const { shoppingListItems } = await import("../drizzle/schema");
-
-  try {
-    await db.update(shoppingListItems).set({ checked: checked ? 1 : 0 }).where(eq(shoppingListItems.id, itemId));
-    logger.info("[DB] Shopping list item updated", "Item status updated", { itemId, checked });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to update shopping list item", { error: errorMessage, itemId });
-    throw error;
-  }
+  await db
+    .update(schema.shoppingListItems)
+    .set({ checked: checked ? 1 : 0 })
+    .where(eq(schema.shoppingListItems.id, itemId));
 }
 
-/**
- * Delete shopping list with ownership verification
- */
-export async function deleteShoppingList(listId: number) {
+export async function deleteShoppingList(listId: number): Promise<void> {
   const db = await getDbOrThrow();
-  const { shoppingLists, shoppingListItems } = await import("../drizzle/schema");
-
-  try {
-    // First delete all items in the list
-    await db.delete(shoppingListItems).where(eq(shoppingListItems.shoppingListId, listId));
-    // Then delete the list itself
-    const result = await db.delete(shoppingLists).where(eq(shoppingLists.id, listId));
-    logger.info("[DB] Shopping list deleted", "Shopping list deleted", { listId });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to delete shopping list", { error: errorMessage, listId });
-    throw error;
-  }
+  await db.delete(schema.shoppingListItems).where(eq(schema.shoppingListItems.shoppingListId, listId));
+  await db.delete(schema.shoppingLists).where(eq(schema.shoppingLists.id, listId));
 }
 
-/**
- * Delete shopping list item
- */
-export async function deleteShoppingListItem(itemId: number) {
+export async function deleteShoppingListItem(itemId: number): Promise<void> {
   const db = await getDbOrThrow();
-  const { shoppingListItems } = await import("../drizzle/schema");
-
-  try {
-    const result = await db.delete(shoppingListItems).where(eq(shoppingListItems.id, itemId));
-    logger.info("[DB] Shopping list item deleted", "Shopping list item deleted", { itemId });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to delete shopping list item", { error: errorMessage, itemId });
-    throw error;
-  }
+  await db.delete(schema.shoppingListItems).where(eq(schema.shoppingListItems.id, itemId));
 }
-
-/**
- * ==========================================
- * AI Recognition History 相關函數
- * ==========================================
- */
 
 export async function addAIRecognitionHistory(
   userId: number,
@@ -493,67 +355,87 @@ export async function addAIRecognitionHistory(
   recognizedIngredients: string[],
   recommendedRecipes?: string[],
   requestId?: string
-) {
+): Promise<void> {
   const db = await getDbOrThrow();
-  const { aiRecognitionHistory } = await import("../drizzle/schema");
-
-  try {
-    await db.insert(aiRecognitionHistory).values({
-      userId,
-      imageUrl,
-      recognizedIngredients: JSON.stringify(recognizedIngredients),
-      recommendedRecipes: recommendedRecipes ? JSON.stringify(recommendedRecipes) : null,
-      requestId,
-    });
-    logger.info("[DB] AI recognition history added", "History recorded", { userId, requestId });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to add AI recognition history", { error: errorMessage, userId });
-    throw error;
-  }
+  await db.insert(schema.aiRecognitionHistory).values({
+    userId,
+    imageUrl,
+    recognizedIngredients: JSON.stringify(recognizedIngredients),
+    recommendedRecipes: JSON.stringify(recommendedRecipes ?? []),
+    requestId,
+  });
 }
 
-export async function getUserAIRecognitionHistory(userId: number, limit: number = 20) {
+export async function getUserAIRecognitionHistory(
+  userId: number,
+  limit = 20
+): Promise<AIHistoryRecord[]> {
   const db = await getDbOrThrow();
-  const { aiRecognitionHistory } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(schema.aiRecognitionHistory)
+    .where(eq(schema.aiRecognitionHistory.userId, userId))
+    .orderBy(desc(schema.aiRecognitionHistory.createdAt))
+    .limit(limit);
 
-  try {
-    const result = await db.select().from(aiRecognitionHistory)
-      .where(eq(aiRecognitionHistory.userId, userId))
-      .orderBy(desc(aiRecognitionHistory.createdAt))
-      .limit(limit);
-    
-    logger.info("[DB] AI recognition history retrieved", "History fetched", { userId, count: result.length });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to get AI recognition history", { error: errorMessage, userId });
-    throw error;
-  }
+  return result.map(record => ({
+    id: record.id,
+    userId: record.userId,
+    imageUrl: record.imageUrl,
+    recognizedIngredients: safeParseStringArray(record.recognizedIngredients),
+    recommendedRecipes: safeParseStringArray(record.recommendedRecipes),
+    requestId: record.requestId,
+    createdAt: record.createdAt,
+  }));
 }
 
-export async function deleteAIRecognitionHistory(userId: number, historyId: number) {
+export async function getAIRecognitionHistoryByIdForUser(
+  userId: number,
+  historyId: number
+): Promise<AIHistoryRecord | null> {
   const db = await getDbOrThrow();
-  const { aiRecognitionHistory } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(schema.aiRecognitionHistory)
+    .where(
+      and(eq(schema.aiRecognitionHistory.id, historyId), eq(schema.aiRecognitionHistory.userId, userId))
+    )
+    .limit(1);
+
+  const record = result[0];
+  if (!record) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    userId: record.userId,
+    imageUrl: record.imageUrl,
+    recognizedIngredients: safeParseStringArray(record.recognizedIngredients),
+    recommendedRecipes: safeParseStringArray(record.recommendedRecipes),
+    requestId: record.requestId,
+    createdAt: record.createdAt,
+  };
+}
+
+export async function deleteAIRecognitionHistory(userId: number, historyId: number): Promise<void> {
+  const db = await getDbOrThrow();
+  await db
+    .delete(schema.aiRecognitionHistory)
+    .where(
+      and(eq(schema.aiRecognitionHistory.id, historyId), eq(schema.aiRecognitionHistory.userId, userId))
+    );
+}
+
+function safeParseStringArray(raw: string | null): string[] {
+  if (!raw) {
+    return [];
+  }
 
   try {
-    // Verify ownership before deleting
-    const record = await db.select().from(aiRecognitionHistory)
-      .where(and(eq(aiRecognitionHistory.id, historyId), eq(aiRecognitionHistory.userId, userId)))
-      .limit(1);
-    
-    if (record.length === 0) {
-      logger.warn("[DB] AI history record not found or unauthorized", "Attempted to delete non-existent record", { userId, historyId });
-      throw new Error("Record not found or unauthorized");
-    }
-
-    await db.delete(aiRecognitionHistory)
-      .where(and(eq(aiRecognitionHistory.id, historyId), eq(aiRecognitionHistory.userId, userId)));
-    
-    logger.info("[DB] AI recognition history deleted", "History record deleted", { userId, historyId });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[DB] Failed to delete AI recognition history", { error: errorMessage, userId, historyId });
-    throw error;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
   }
 }

@@ -5,7 +5,12 @@
  * All providers must implement these methods with consistent return types.
  */
 
-import { RecipeSummary, RecipeDetails, RecipeSearchResult, RecipeSearchParams } from '../../../shared/types';
+import {
+  RecipeDetails,
+  RecipeSearchParams,
+  RecipeSearchResult,
+  RecipeSummary,
+} from "../../../shared/types";
 
 /**
  * Provider error types for better error handling
@@ -40,44 +45,13 @@ export class ProviderError extends Error {
  * All recipe data sources must implement this contract
  */
 export interface IRecipeProvider {
-  /**
-   * Get provider name for logging and identification
-   */
   getName(): string;
-
-  /**
-   * Check if provider is available/configured
-   */
   isAvailable(): Promise<boolean>;
-
-  /**
-   * Search recipes by query
-   */
   searchRecipes(params: RecipeSearchParams): Promise<RecipeSearchResult>;
-
-  /**
-   * Get recipe details by ID
-   */
   getRecipeDetails(recipeId: number): Promise<RecipeDetails | null>;
-
-  /**
-   * Get random recipes
-   */
   getRandomRecipes(count: number): Promise<RecipeSummary[]>;
-
-  /**
-   * Get recipes by cuisine
-   */
   getRecipesByCuisine(cuisine: string, count: number): Promise<RecipeSummary[]>;
-
-  /**
-   * Get recipes by diet
-   */
   getRecipesByDiet(diet: string, count: number): Promise<RecipeSummary[]>;
-
-  /**
-   * Get provider status for health checks
-   */
   getStatus(): Promise<{
     available: boolean;
     message?: string;
@@ -85,9 +59,6 @@ export interface IRecipeProvider {
   }>;
 }
 
-/**
- * Provider configuration
- */
 export interface ProviderConfig {
   enabled: boolean;
   priority?: number;
@@ -95,10 +66,6 @@ export interface ProviderConfig {
   retries?: number;
 }
 
-/**
- * Base class for recipe providers
- * Provides common functionality and error handling
- */
 export abstract class BaseRecipeProvider implements IRecipeProvider {
   protected config: ProviderConfig;
   protected lastError?: string;

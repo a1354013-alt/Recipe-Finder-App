@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Recipe placeholder</title>
+  <desc id="desc">A warm illustrated placeholder image for recipes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff4e6" />
+      <stop offset="100%" stop-color="#f8d7b6" />
+    </linearGradient>
+    <linearGradient id="plate" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f4ede2" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)" />
+  <circle cx="930" cy="140" r="90" fill="#ffe2bf" />
+  <circle cx="220" cy="650" r="120" fill="#ffd4a3" />
+  <ellipse cx="600" cy="430" rx="300" ry="220" fill="#d48641" opacity="0.12" />
+  <ellipse cx="600" cy="390" rx="310" ry="210" fill="url(#plate)" />
+  <ellipse cx="600" cy="390" rx="245" ry="155" fill="#fffaf2" />
+  <path d="M440 350c40-55 112-92 180-92 82 0 149 32 194 98-33 56-100 108-193 108-90 0-147-44-181-114Z" fill="#e8743b" opacity="0.9" />
+  <path d="M480 352c20-28 67-52 116-52 55 0 110 19 138 58-22 37-70 66-140 66-61 0-97-24-114-72Z" fill="#ffb36b" />
+  <circle cx="540" cy="355" r="24" fill="#2d7d46" />
+  <circle cx="640" cy="332" r="19" fill="#2d7d46" />
+  <circle cx="690" cy="385" r="21" fill="#2d7d46" />
+  <rect x="340" y="585" width="520" height="28" rx="14" fill="#ffffff" opacity="0.75" />
+  <text x="600" y="600" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="#a4511f">Recipe Preview</text>
+</svg>

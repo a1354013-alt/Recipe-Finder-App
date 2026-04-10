@@ -10,17 +10,17 @@
  * - CSRF 驗證（client 自動帶 x-csrf-token）
  */
 
-import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Upload, Sparkles, ChefHat, Settings } from 'lucide-react';
+import { Loader2, Upload, Sparkles, ChefHat } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import RecipeCard from '@/components/RecipeCard';
 import { trpc } from '@/lib/trpc';
 import { Recipe } from '@/lib/recipes';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
+import { RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
 
 interface RecognizedIngredient {
   name: string;
@@ -28,9 +28,16 @@ interface RecognizedIngredient {
   unit: string;
 }
 
+interface RecommendedRecipe {
+  name: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  cookTime: number;
+  servings?: number;
+}
+
 export default function AIRecognition() {
   // All hooks must be called before any conditional returns
-  const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -42,15 +49,7 @@ export default function AIRecognition() {
   // Use React Query hooks for mutations
   const recognizeIngredientsMutation = trpc.ai.recognizeIngredients.useMutation();
   const getRecommendationsMutation = trpc.ai.getRecipeRecommendations.useMutation();
-  const getConfigQuery = trpc.ai.getConfig.useQuery();
-  const [aiProvider, setAiProvider] = useState<'manus' | 'ollama'>('manus');
-
-  // useEffect must be called before any conditional returns
-  useEffect(() => {
-    if (getConfigQuery.data) {
-      setAiProvider(getConfigQuery.data.provider);
-    }
-  }, [getConfigQuery.data]);
+  trpc.ai.getConfig.useQuery();
 
   // Conditional returns after all hooks
   if (loading) {
@@ -115,22 +114,24 @@ export default function AIRecognition() {
       setConfidence(result.confidence);
 
       // Get recipe recommendations
-      const ingredientNames = result.ingredients.map((ing: any) => ing.name);
+      const ingredientNames = result.ingredients.map((ing: RecognizedIngredient) => ing.name);
       const recipes = await getRecommendationsMutation.mutateAsync({
         ingredients: ingredientNames,
         maxRecipes: 5,
       });
 
       // Convert recommendations to Recipe format for display
-      const recipeObjects: Recipe[] = recipes.recipes.map((recipe: any, idx: number) => ({
+      const recipeObjects: Recipe[] = recipes.recipes.map((recipe: RecommendedRecipe, idx: number) => ({
         id: idx,
         title: recipe.name || 'Recipe',
-        image: '/images/recipe-placeholder.jpg',
+        image: RECIPE_PLACEHOLDER_IMAGE,
         readyInMinutes: recipe.cookTime || 30,
         servings: recipe.servings || 4,
         sourceUrl: '',
         summary: recipe.description,
-        difficulty: recipe.difficulty as 'Easy' | 'Medium' | 'Hard',
+        difficulty: recipe.difficulty,
+        cuisines: [],
+        diets: [],
       }));
 
       setRecommendedRecipes(recipeObjects);

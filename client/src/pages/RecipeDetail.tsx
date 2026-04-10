@@ -11,9 +11,10 @@ import { useRoute, useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
 import RatingReview from '@/components/RatingReview';
 import ShoppingListComponent from '@/components/ShoppingList';
-import { Recipe, useRecipeDetails } from '@/lib/recipes';
+import { useRecipeDetails } from '@/lib/recipes';
 import { Loader2, ArrowLeft, Clock, Users, Flame, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { RecipeInstructionStep, RecipeNutritionNutrient } from '@shared/types';
 
 export default function RecipeDetail() {
   const [match, params] = useRoute('/recipe/:id');
@@ -196,7 +197,7 @@ export default function RecipeDetail() {
               </h2>
               <ul className="space-y-3">
                 {recipe.extendedIngredients && recipe.extendedIngredients.length > 0 ? (
-                  recipe.extendedIngredients.map((ingredient: any) => (
+                  recipe.extendedIngredients.map((ingredient) => (
                     <li
                       key={ingredient.id}
                       className="flex items-start gap-3 pb-3 border-b border-border last:border-b-0"
@@ -230,7 +231,7 @@ export default function RecipeDetail() {
             <h2 className="section-title">Cooking Instructions</h2>
             {recipe.analyzedInstructions && recipe.analyzedInstructions.length > 0 ? (
               <div className="space-y-4">
-                {recipe.analyzedInstructions[0].steps.map((step: any) => (
+                {recipe.analyzedInstructions[0].steps.map((step: RecipeInstructionStep) => (
                   <div key={step.number} className="recipe-card p-6 flex gap-4">
                     <div className="flex-shrink-0">
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground font-merriweather font-bold">
@@ -256,7 +257,7 @@ export default function RecipeDetail() {
           <section>
             <h2 className="section-title">Nutrition Information</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {recipe.nutrition.nutrients.slice(0, 5).map((nutrient: any, idx: number) => (
+              {recipe.nutrition.nutrients.slice(0, 5).map((nutrient: RecipeNutritionNutrient, idx: number) => (
                 <div key={idx} className="recipe-card p-4 text-center">
                   <p className="text-xs text-muted-foreground font-lato mb-2">
                     {nutrient.name}

@@ -33,6 +33,8 @@ Thumbs.db
 
 # Logs
 logs
+.manus-logs/
+.webdev/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -101,6 +103,7 @@ jspm_packages/
 # Temporary folders
 tmp/
 temp/
+artifacts/
 
 # Database
 *.db

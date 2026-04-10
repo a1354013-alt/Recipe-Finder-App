@@ -9,11 +9,12 @@
 
 import {
   addFavorite,
-  removeFavorite,
   getUserFavorites,
   isFavorited,
+  removeFavorite,
 } from '../db';
 import { logger } from '../_core/logger';
+import type { FavoriteListItem } from "../../shared/types";
 
 /**
  * Add a recipe to user favorites
@@ -115,7 +116,7 @@ export async function checkRecipeFavorite(
 export async function getUserFavoritesList(
   userId: number,
   requestId?: string
-): Promise<any[]> {
+): Promise<FavoriteListItem[]> {
   try {
     logger.info(
       '[FavoriteService] Fetching user favorites',

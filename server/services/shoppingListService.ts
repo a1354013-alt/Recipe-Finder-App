@@ -21,6 +21,7 @@ import {
 } from '../db';
 import { logger } from '../_core/logger';
 import { TRPCError } from '@trpc/server';
+import type { ShoppingListItemRecord, ShoppingListSummary } from "../../shared/types";
 
 /**
  * Create a new shopping list
@@ -30,7 +31,7 @@ export async function createNewShoppingList(
   name: string,
   description?: string,
   requestId?: string
-): Promise<any> {
+): Promise<ShoppingListSummary> {
   try {
     logger.info(
       '[ShoppingListService] Creating shopping list',
@@ -46,7 +47,10 @@ export async function createNewShoppingList(
       { userId, listId: list.id, name, description, requestId }
     );
 
-    return list;
+    return {
+      ...list,
+      itemCount: 0,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(
@@ -63,7 +67,7 @@ export async function createNewShoppingList(
 export async function getUserShoppingLists(
   userId: number,
   requestId?: string
-): Promise<any[]> {
+): Promise<ShoppingListSummary[]> {
   try {
     logger.info(
       '[ShoppingListService] Fetching user shopping lists',
@@ -97,7 +101,7 @@ export async function getListItems(
   userId: number,
   listId: number,
   requestId?: string
-): Promise<any[]> {
+): Promise<ShoppingListItemRecord[]> {
   try {
     // Verify ownership
     const list = await getShoppingListByIdForUser(userId, listId);
@@ -143,7 +147,7 @@ export async function addItemToList(
   quantity: number,
   unit: string,
   requestId?: string
-): Promise<any> {
+): Promise<ShoppingListItemRecord> {
   try {
     // Verify ownership
     const list = await getShoppingListByIdForUser(userId, listId);
@@ -168,7 +172,10 @@ export async function addItemToList(
       { userId, listId, requestId }
     );
 
-    return item;
+    return {
+      ...item,
+      checked: item.checked === 1,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(
@@ -187,7 +194,7 @@ export async function updateItemStatus(
   itemId: number,
   completed: boolean,
   requestId?: string
-): Promise<any> {
+): Promise<void> {
   try {
     // Verify ownership through item
     const item = await getShoppingListItemByIdForUser(userId, itemId);
@@ -204,7 +211,7 @@ export async function updateItemStatus(
       { userId, itemId, completed, requestId }
     );
 
-    const updatedItem = await updateShoppingListItemStatus(itemId, completed);
+    await updateShoppingListItemStatus(itemId, completed);
 
     logger.info(
       '[ShoppingListService] Item status updated',
@@ -212,7 +219,6 @@ export async function updateItemStatus(
       { userId, itemId, completed, requestId }
     );
 
-    return updatedItem;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(

@@ -63,6 +63,7 @@ export function mapExternalError(
   logger.debug(
     `[${context}] External service error`,
     { originalError: originalError.substring(0, 100) },
+    undefined,
     requestId,
     userId
   );
@@ -87,6 +88,7 @@ export function validateServiceResponse(
     logger.warn(
       `[${context}] Invalid response type`,
       { type: typeof response },
+      undefined,
       requestId,
       userId
     );
@@ -100,6 +102,7 @@ export function validateServiceResponse(
     logger.warn(
       `[${context}] Missing response fields`,
       { missing },
+      undefined,
       requestId,
       userId
     );

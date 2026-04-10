@@ -176,9 +176,6 @@ export const recipeRouter = router({
         return await getUserHistory(ctx.user.id, input.limit, ctx.requestId);
       }),
 
-    // Note: aiHistory.add is handled by ingredientRecognition service during image recognition
-    // This route is deprecated - use ingredientRecognition.recognizeIngredients instead
-
     delete: protectedProcedure
       .input(z.object({ historyId: z.number() }))
       .mutation(async ({ ctx, input }) => {

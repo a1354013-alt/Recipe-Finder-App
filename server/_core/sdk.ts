@@ -65,7 +65,10 @@ class OAuthService {
       logger.info("[OAuth] Token exchange successful");
       return data;
     } catch (error) {
-      logger.error("[OAuth] Token exchange failed", error);
+      logger.error(
+        "[OAuth] Token exchange failed",
+        error instanceof Error ? error : String(error)
+      );
       throw error;
     }
   }
@@ -83,7 +86,10 @@ class OAuthService {
       logger.info("[OAuth] User info retrieved successfully");
       return data;
     } catch (error) {
-      logger.error("[OAuth] Failed to get user info", error);
+      logger.error(
+        "[OAuth] Failed to get user info",
+        error instanceof Error ? error : String(error)
+      );
       throw error;
     }
   }
@@ -279,7 +285,10 @@ class SDKServer {
         loginMethod,
       } as GetUserInfoWithJwtResponse;
     } catch (error) {
-      logger.error("[Auth] Failed to get user info from OAuth server", error);
+      logger.error(
+        "[Auth] Failed to get user info from OAuth server",
+        error instanceof Error ? error : String(error)
+      );
       throw error;
     }
   }
@@ -337,7 +346,10 @@ class SDKServer {
       });
       logger.info("[Auth] User authenticated successfully", { openId: sessionUserId });
     } catch (error) {
-      logger.error("[Auth] Failed to update lastSignedIn", error);
+      logger.error(
+        "[Auth] Failed to update lastSignedIn",
+        error instanceof Error ? error : String(error)
+      );
     }
 
     return user;

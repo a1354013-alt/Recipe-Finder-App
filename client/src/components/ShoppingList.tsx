@@ -7,7 +7,7 @@
  * - Export shopping list
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ShoppingCart, Download, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trpc } from '@/lib/trpc';
@@ -27,7 +27,6 @@ interface ShoppingListProps {
 }
 
 export default function ShoppingListComponent({
-  recipeId,
   recipeName,
   ingredients,
 }: ShoppingListProps) {
@@ -35,11 +34,6 @@ export default function ShoppingListComponent({
   const utils = trpc.useUtils();
   const [shoppingListId, setShoppingListId] = useState<number | null>(null);
   const [isAdded, setIsAdded] = useState(false);
-
-  // Get user's shopping lists
-  const listsQuery = trpc.recipe.shoppingLists.list.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
 
   // Create shopping list mutation
   const createListMutation = trpc.recipe.shoppingLists.create.useMutation({
@@ -53,7 +47,7 @@ export default function ShoppingListComponent({
           await addItemMutation.mutateAsync({
             shoppingListId: newListId,
             ingredient: ing.name,
-            quantity: String(ing.amount),
+            quantity: ing.amount,
             unit: ing.unit,
           });
         }

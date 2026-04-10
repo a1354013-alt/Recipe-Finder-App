@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { notifyOwner } from "./notification";
 import { adminProcedure, publicProcedure, router } from "./trpc";
-import { getDb, dbPing } from "../db";
+import { dbPing } from "../db";
 import { logger } from "./logger";
 
 export const systemRouter = router({

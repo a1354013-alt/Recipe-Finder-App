@@ -14,6 +14,7 @@ import { logger } from "./logger";
 import { closePool } from "../db";
 import { requestIdMiddleware } from "./requestId";
 import { csrfMiddleware } from "./csrf";
+import { dbPing } from "../db";
 
 /**
  * 檢查 port 是否可用
@@ -73,24 +74,14 @@ async function startServer() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: [
-            "'self'",
-            ...unsafeInline,
-            "https://maps.googleapis.com",
-            "https://maps.gstatic.com",
-          ],
+          scriptSrc: ["'self'", ...unsafeInline],
           styleSrc: [
             "'self'",
             ...unsafeInline,
             "https://fonts.googleapis.com",
-            "https://maps.googleapis.com",
           ],
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: [
-            "'self'",
-            "https://maps.googleapis.com",
-            "https://maps.gstatic.com",
-          ],
+          connectSrc: ["'self'"],
           fontSrc: [
             "'self'",
             "https://fonts.gstatic.com",
@@ -129,6 +120,53 @@ async function startServer() {
     registerOAuthRoutes(app);
 
     // tRPC API
+    app.get("/api/health", (_req, res) => {
+      res.status(200).json({
+        ok: true,
+        version: process.env.npm_package_version ?? "unknown",
+        env: process.env.NODE_ENV || "development",
+        uptimeSec: Math.floor(process.uptime()),
+      });
+    });
+
+    app.get("/api/ready", async (req, res) => {
+      const startTime = Date.now();
+      try {
+        await Promise.race([
+          dbPing(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("DB ping timeout")), 3000)
+          ),
+        ]);
+
+        res.status(200).json({
+          ok: true,
+          version: process.env.npm_package_version ?? "unknown",
+          env: process.env.NODE_ENV || "development",
+          uptimeSec: Math.floor(process.uptime()),
+          checkDurationMs: Date.now() - startTime,
+        });
+      } catch (error) {
+        logger.warn(
+          "[READY] HTTP readiness check failed",
+          {
+            reason: error instanceof Error ? error.message : String(error),
+          },
+          undefined,
+          (req as typeof req & { id?: string }).id
+        );
+
+        res.status(503).json({
+          ok: false,
+          reason: error instanceof Error ? error.message : String(error),
+          version: process.env.npm_package_version ?? "unknown",
+          env: process.env.NODE_ENV || "development",
+          uptimeSec: Math.floor(process.uptime()),
+          checkDurationMs: Date.now() - startTime,
+        });
+      }
+    });
+
     app.use(
       "/api/trpc",
       createExpressMiddleware({
@@ -195,7 +233,7 @@ async function startServer() {
       const available = await isPortAvailable(preferredPort);
       if (!available) {
         const error = `Port ${preferredPort} is not available in production environment. Fail fast.`;
-        logger.error("[Server] Port not available", error instanceof Error ? error.message : String(error));
+        logger.error("[Server] Port not available", error);
         throw new Error(error);
       }
       port = preferredPort;

@@ -1,15 +1,36 @@
-/**
- * Unified type exports
- * Import shared types from this single entry point.
- */
+import type {
+  AIRecognitionHistory,
+  Favorite,
+  ShoppingList,
+  ShoppingListItem,
+} from "../drizzle/schema";
 
 export type * from "../drizzle/schema";
 export * from "./_core/errors";
 
-/**
- * Recipe Type Definitions
- * Separated into Summary (for lists) and Details (for detail page)
- */
+export const RECIPE_PLACEHOLDER_IMAGE = "/images/recipe-placeholder.svg";
+
+export interface RecipeIngredient {
+  id: number;
+  original: string;
+  name: string;
+  amount: number;
+  unit: string;
+}
+
+export interface RecipeInstructionStep {
+  number: number;
+  step: string;
+  ingredients?: Array<{ id: number; name: string }>;
+  equipment?: Array<{ id: number; name: string }>;
+}
+
+export interface RecipeNutritionNutrient {
+  name: string;
+  amount: number;
+  unit: string;
+  percentOfDailyNeeds?: number;
+}
 
 export interface RecipeSummary {
   id: number;
@@ -20,35 +41,20 @@ export interface RecipeSummary {
   sourceUrl: string;
   cuisines: string[];
   diets: string[];
-  difficulty?: string;
+  difficulty?: "easy" | "medium" | "hard";
   calories?: number;
 }
 
 export interface RecipeDetails extends RecipeSummary {
   summary: string;
   instructions: string;
-  extendedIngredients: Array<{
-    id: number;
-    original: string;
-    name: string;
-    amount: number;
-    unit: string;
-  }>;
+  extendedIngredients: RecipeIngredient[];
   analyzedInstructions: Array<{
     name: string;
-    steps: Array<{
-      number: number;
-      step: string;
-      ingredients?: Array<{ id: number; name: string }>;
-      equipment?: Array<{ id: number; name: string }>;
-    }>;
+    steps: RecipeInstructionStep[];
   }>;
   nutrition?: {
-    nutrients?: Array<{
-      name: string;
-      amount: number;
-      unit: string;
-    }>;
+    nutrients?: RecipeNutritionNutrient[];
   };
 }
 
@@ -72,36 +78,52 @@ export interface RecipeSearchParams {
   requestId?: string;
 }
 
-/**
- * Recipe Provider Configuration
- * Allows switching between different data sources
- */
-export type RecipeProviderType = 'mock' | 'spoonacular' | 'database';
-
-export interface RecipeProviderConfig {
-  type: RecipeProviderType;
-  apiKey?: string;
-  enabled: boolean;
-}
-
-/**
- * Recipe Service Status
- * Used to communicate API availability and configuration status
- */
-export type RecipeServiceStatus = 'available' | 'missing_api_key' | 'api_error' | 'unavailable';
+export type RecipeProviderType = "local" | "spoonacular";
+export type RecipeServiceStatus = "available" | "missing_api_key" | "api_error" | "unavailable";
 
 export interface RecipeServiceInfo {
   status: RecipeServiceStatus;
-  provider: 'mock' | 'spoonacular' | 'database';
+  provider: RecipeProviderType;
   message?: string;
   requestId?: string;
 }
 
 export interface RecipeSearchResultWithStatus extends RecipeSearchResult {
-  serviceStatus?: RecipeServiceInfo;
+  serviceStatus: RecipeServiceInfo;
+}
+
+export interface RecipeCollectionWithStatus {
+  data: RecipeSummary[];
+  serviceStatus: RecipeServiceInfo;
 }
 
 export interface RecipeDetailsWithStatus {
   data: RecipeDetails | null;
-  serviceStatus?: RecipeServiceInfo;
+  serviceStatus: RecipeServiceInfo;
+}
+
+export interface FavoriteListItem extends Favorite {}
+
+export interface ShoppingListSummary {
+  id: ShoppingList["id"];
+  userId: ShoppingList["userId"];
+  name: ShoppingList["name"];
+  description: ShoppingList["description"];
+  createdAt: ShoppingList["createdAt"];
+  updatedAt: ShoppingList["updatedAt"];
+  itemCount: number;
+}
+
+export type ShoppingListItemRecord = Omit<ShoppingListItem, "checked"> & {
+  checked: boolean;
+};
+
+export interface AIHistoryRecord {
+  id: AIRecognitionHistory["id"];
+  userId: AIRecognitionHistory["userId"];
+  imageUrl: AIRecognitionHistory["imageUrl"];
+  recognizedIngredients: string[];
+  recommendedRecipes: string[];
+  requestId: AIRecognitionHistory["requestId"];
+  createdAt: AIRecognitionHistory["createdAt"];
 }

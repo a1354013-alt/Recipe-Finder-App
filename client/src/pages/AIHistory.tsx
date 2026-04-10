@@ -1,13 +1,3 @@
-/**
- * AI Recognition History Page
- * 
- * Architecture:
- * - Single React Query hook with select function for data transformation
- * - No manual useState/useEffect for data parsing
- * - Parsing logic moved to query select
- * - Clean separation of concerns
- */
-
 import { useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
 import { trpc } from '@/lib/trpc';
@@ -15,60 +5,13 @@ import { Loader2, Trash2, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-
-interface HistoryItem {
-  id: number;
-  imageUrl: string;
-  recognizedIngredients: string[];
-  recommendedRecipes?: string[];
-  createdAt: Date;
-}
-
-/**
- * Parse history item data
- * Handles both string and array formats for ingredients and recipes
- */
-function parseHistoryItem(item: any): HistoryItem {
-  try {
-    return {
-      ...item,
-      recognizedIngredients: typeof item.recognizedIngredients === 'string'
-        ? JSON.parse(item.recognizedIngredients)
-        : Array.isArray(item.recognizedIngredients)
-          ? item.recognizedIngredients
-          : [],
-      recommendedRecipes: item.recommendedRecipes
-        ? (typeof item.recommendedRecipes === 'string'
-          ? JSON.parse(item.recommendedRecipes)
-          : Array.isArray(item.recommendedRecipes)
-            ? item.recommendedRecipes
-            : [])
-        : [],
-    };
-  } catch (error) {
-    console.error('Failed to parse history item:', error, item);
-    return {
-      ...item,
-      recognizedIngredients: [],
-      recommendedRecipes: [],
-    };
-  }
-}
+import type { AIHistoryRecord } from '@shared/types';
 
 export default function AIHistory() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
-  // Single query with select function for data transformation
-  const historyQuery = trpc.recipe.aiHistory.list.useQuery(
-    { limit: 50 },
-    {
-      select: (data) => {
-        // Transform data in query layer, not in component
-        return (data || []).map(parseHistoryItem);
-      },
-    }
-  );
+  const historyQuery = trpc.recipe.aiHistory.list.useQuery({ limit: 50 });
 
   const deleteMutation = trpc.recipe.aiHistory.delete.useMutation({
     onSuccess: () => {
@@ -90,7 +33,6 @@ export default function AIHistory() {
     }
   };
 
-  // Loading state
   if (historyQuery.isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -105,7 +47,6 @@ export default function AIHistory() {
     );
   }
 
-  // Error state
   if (historyQuery.isError) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -153,9 +94,8 @@ export default function AIHistory() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {history.map((item) => (
+            {history.map((item: AIHistoryRecord) => (
               <Card key={item.id} className="recipe-card p-6 space-y-4">
-                {/* Image */}
                 <div className="relative h-48 overflow-hidden rounded-lg bg-muted">
                   <img
                     src={item.imageUrl}
@@ -164,29 +104,27 @@ export default function AIHistory() {
                   />
                 </div>
 
-                {/* Recognized Ingredients */}
                 <div>
                   <h3 className="font-merriweather font-bold text-accent mb-2">
                     Recognized Ingredients
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.recognizedIngredients.map((ingredient, idx) => (
-                      <span key={idx} className="ingredient-tag accent text-sm">
+                    {item.recognizedIngredients.map(ingredient => (
+                      <span key={ingredient} className="ingredient-tag accent text-sm">
                         {ingredient}
                       </span>
                     ))}
                   </div>
                 </div>
 
-                {/* Recommended Recipes */}
-                {item.recommendedRecipes && item.recommendedRecipes.length > 0 && (
+                {item.recommendedRecipes.length > 0 && (
                   <div>
                     <h3 className="font-merriweather font-bold text-accent mb-2">
                       Recommended Recipes
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {item.recommendedRecipes.slice(0, 3).map((recipe, idx) => (
-                        <span key={idx} className="ingredient-tag text-sm">
+                      {item.recommendedRecipes.slice(0, 3).map(recipe => (
+                        <span key={recipe} className="ingredient-tag text-sm">
                           {recipe}
                         </span>
                       ))}
@@ -194,12 +132,10 @@ export default function AIHistory() {
                   </div>
                 )}
 
-                {/* Date */}
                 <div className="text-xs text-muted-foreground font-lato">
                   {new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString()}
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
@@ -232,7 +168,6 @@ export default function AIHistory() {
         )}
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-border bg-secondary/50 py-8 mt-16">
         <div className="container text-center text-muted-foreground text-sm font-lato">
           <p>Recipe Finder Pro - Your culinary companion</p>

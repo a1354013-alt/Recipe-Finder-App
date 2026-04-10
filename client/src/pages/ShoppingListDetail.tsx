@@ -14,6 +14,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { ArrowLeft, Plus, Trash2, Check, Loader2 } from 'lucide-react';
+import type { ShoppingListItemRecord } from '@shared/types';
 
 export default function ShoppingListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export default function ShoppingListDetail() {
     },
   });
 
-  const deleteItemMutation = trpc.recipe.shoppingLists.deleteItem?.useMutation?.({
+  const deleteItemMutation = trpc.recipe.shoppingLists.deleteItem.useMutation({
     onSuccess: () => {
       toast.success('Item deleted');
       itemsQuery.refetch();
@@ -72,7 +73,7 @@ export default function ShoppingListDetail() {
     await addItemMutation.mutateAsync({
       shoppingListId: listId,
       ingredient: newItemIngredient,
-      quantity: String(newItemQuantity || '1'),
+      quantity: Number(newItemQuantity || '1'),
       unit: newItemUnit,
     });
   };
@@ -175,7 +176,7 @@ export default function ShoppingListDetail() {
           </div>
         ) : (
           <div className="space-y-2">
-            {items.map((item: any) => (
+            {items.map((item: ShoppingListItemRecord) => (
               <div
                 key={item.id}
                 className="p-4 bg-card border border-border rounded-lg flex items-center justify-between hover:shadow-md transition-shadow"
@@ -201,18 +202,16 @@ export default function ShoppingListDetail() {
                     </p>
                   </div>
                 </div>
-                {deleteItemMutation && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() =>
-                      deleteItemMutation.mutate({ itemId: item.id })
-                    }
-                    disabled={deleteItemMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() =>
+                    deleteItemMutation.mutate({ itemId: item.id })
+                  }
+                  disabled={deleteItemMutation.isPending}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             ))}
           </div>

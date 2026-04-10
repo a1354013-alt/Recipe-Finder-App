@@ -511,7 +511,7 @@ export const aiRouter = router({
           .default(5),
       })
     )
-    .query(async ({ input, ctx }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         // Per-user rate limit 檢查
         const { allowed, remaining, resetTime } = await aiRateLimiter.checkLimit(String(ctx.user.id));
@@ -644,7 +644,6 @@ export const aiRouter = router({
         });
       }
 
-       const oldConfig = aiConfigManager.getOllamaConfig();
       logger.info(
         "[AI] Ollama config updated",
         { url: input.url, model: input.model, admin: ctx.user?.id },

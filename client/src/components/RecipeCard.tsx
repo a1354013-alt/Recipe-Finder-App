@@ -10,9 +10,11 @@
  */
 
 import { Link } from 'wouter';
+import { useState } from 'react';
 import { Recipe } from '@/lib/recipes';
 import { Clock, Users, Flame } from 'lucide-react';
 import FavoriteButton from './FavoriteButton';
+import { RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -37,6 +39,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 };
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
+  const [imageSrc, setImageSrc] = useState(recipe.image || RECIPE_PLACEHOLDER_IMAGE);
   const difficultyKey = (recipe.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_COLORS;
 
   return (
@@ -45,10 +48,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         {/* Recipe Image Container */}
         <div className="relative overflow-hidden bg-gray-200 aspect-video">
           <img
-            src={recipe.image}
+            src={imageSrc}
             alt={recipe.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
+            onError={() => setImageSrc(RECIPE_PLACEHOLDER_IMAGE)}
           />
 
           {/* Overlay with Info on Hover */}
@@ -77,7 +81,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             <FavoriteButton
               recipeId={recipe.id}
               recipeName={recipe.title}
-              recipeImage={recipe.image}
+              recipeImage={imageSrc}
             />
           </div>
         </div>

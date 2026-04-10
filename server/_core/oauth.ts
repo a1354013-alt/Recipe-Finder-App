@@ -37,6 +37,21 @@ function isValidStateFormat(state: string): boolean {
   return uuidRegex.test(state);
 }
 
+async function auditOAuthLogin(
+  userId: string,
+  requestId: string,
+  success: boolean,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  await auditLogManager.log({
+    action: success ? "oauth_login_success" : "oauth_login_failure",
+    userId,
+    requestId,
+    status: success ? "success" : "failure",
+    metadata,
+  });
+}
+
 /**
  * 註冊 OAuth 路由
  * 
@@ -309,7 +324,7 @@ export function registerOAuthRoutes(app: Express) {
         name: userInfo.name,
         email: userInfo.email,
         loginMethod: userInfo.loginMethod || userInfo.platform,
-      }).catch(err => {
+      }).catch((err: unknown) => {
         logger.warn(
           "[OAuth] Failed to log audit event",
           { error: err instanceof Error ? err.message : String(err) },
@@ -322,6 +337,7 @@ export function registerOAuthRoutes(app: Express) {
       logger.error(
         "[OAuth] Callback failed",
         error instanceof Error ? error.message : String(error),
+        undefined,
         requestId
       );
       res.redirect(302, `/?error=CALLBACK_ERROR&rid=${requestId}`);

@@ -13,51 +13,13 @@
  */
 
 import { trpc } from './trpc';
+import type {
+  RecipeDetails as SharedRecipeDetails,
+  RecipeSummary as SharedRecipeSummary,
+} from '@shared/types';
 
-export interface Recipe {
-  id: number;
-  title: string;
-  image: string;
-  readyInMinutes: number;
-  servings: number;
-  sourceUrl: string;
-  cuisines?: string[];
-  diets?: string[];
-  summary?: string;
-  instructions?: string;
-  difficulty?: 'Easy' | 'Medium' | 'Hard';
-  calories?: number;
-  extendedIngredients?: Array<{
-    id: number;
-    original: string;
-    name: string;
-    amount: number;
-    unit: string;
-  }>;
-  analyzedInstructions?: Array<{
-    name: string;
-    steps: Array<{
-      number: number;
-      step: string;
-      ingredients?: Array<{
-        id: number;
-        name: string;
-      }>;
-      equipment?: Array<{
-        id: number;
-        name: string;
-      }>;
-    }>;
-  }>;
-  nutrition?: {
-    nutrients: Array<{
-      name: string;
-      amount: number;
-      unit: string;
-      percentOfDailyNeeds?: number;
-    }>;
-  };
-}
+export type Recipe = SharedRecipeSummary &
+  Partial<Omit<SharedRecipeDetails, keyof SharedRecipeSummary>>;
 
 export type RecipeDetails = Recipe;
 
@@ -102,7 +64,7 @@ export function useSearchRecipes(
           return data;
         }
         if (data && 'results' in data) {
-          return (data as any).results || [];
+          return data.results || [];
         }
         return [];
       },
@@ -130,6 +92,7 @@ export function useRecipeDetails(recipeId: number) {
   return trpc.recipe.details.useQuery(
     { recipeId },
     {
+      select: (data) => data.data,
       retry: 1,
       staleTime: 1000 * 60 * 10, // 10 minutes
       // Do NOT fallback to mock data on error
@@ -159,8 +122,8 @@ export function useRandomRecipes(count: number = 12) {
         if (Array.isArray(data)) {
           return data;
         }
-        if (data && 'results' in data) {
-          return (data as any).results || [];
+        if (data && 'data' in data) {
+          return data.data || [];
         }
         return [];
       },
@@ -193,8 +156,8 @@ export function useRecipesByCuisine(cuisine: string, count: number = 12) {
         if (Array.isArray(data)) {
           return data;
         }
-        if (data && 'results' in data) {
-          return (data as any).results || [];
+        if (data && 'data' in data) {
+          return data.data || [];
         }
         return [];
       },
@@ -227,8 +190,8 @@ export function useRecipesByDiet(diet: string, count: number = 12) {
         if (Array.isArray(data)) {
           return data;
         }
-        if (data && 'results' in data) {
-          return (data as any).results || [];
+        if (data && 'data' in data) {
+          return data.data || [];
         }
         return [];
       },

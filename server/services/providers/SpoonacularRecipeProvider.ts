@@ -5,14 +5,89 @@
  * Includes timeout, retry, and comprehensive error handling.
  */
 
-import { logger } from '../../_core/logger';
-import { RecipeSummary, RecipeDetails, RecipeSearchResult, RecipeSearchParams } from '../../../shared/types';
-import { BaseRecipeProvider, ProviderError, ProviderErrorType, ProviderConfig } from './RecipeProvider';
+import { z } from "zod";
+import { logger } from "../../_core/logger";
+import {
+  RECIPE_PLACEHOLDER_IMAGE,
+  RecipeDetails,
+  RecipeSearchParams,
+  RecipeSearchResult,
+  RecipeSummary,
+} from "../../../shared/types";
+import { BaseRecipeProvider, ProviderError, ProviderErrorType, ProviderConfig } from "./RecipeProvider";
 
 interface SpoonacularConfig extends ProviderConfig {
   apiKey?: string;
   baseUrl?: string;
 }
+
+const spoonacularRecipeSummarySchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  image: z.string().optional().nullable(),
+  readyInMinutes: z.number().optional().nullable(),
+  servings: z.number().optional().nullable(),
+  sourceUrl: z.string().optional().nullable(),
+  cuisines: z.array(z.string()).optional().nullable(),
+  diets: z.array(z.string()).optional().nullable(),
+  nutrition: z
+    .object({
+      nutrients: z
+        .array(
+          z.object({
+            name: z.string(),
+            amount: z.number(),
+            unit: z.string().optional(),
+          })
+        )
+        .optional()
+        .nullable(),
+    })
+    .optional()
+    .nullable(),
+});
+
+const spoonacularRecipeDetailsSchema = spoonacularRecipeSummarySchema.extend({
+  summary: z.string().optional().nullable(),
+  instructions: z.string().optional().nullable(),
+  extendedIngredients: z
+    .array(
+      z.object({
+        id: z.number(),
+        original: z.string(),
+        name: z.string(),
+        amount: z.number(),
+        unit: z.string().optional().nullable(),
+      })
+    )
+    .optional()
+    .nullable(),
+  analyzedInstructions: z
+    .array(
+      z.object({
+        name: z.string().optional().nullable(),
+        steps: z.array(
+          z.object({
+            number: z.number(),
+            step: z.string(),
+            ingredients: z.array(z.object({ id: z.number(), name: z.string() })).optional().nullable(),
+            equipment: z.array(z.object({ id: z.number(), name: z.string() })).optional().nullable(),
+          })
+        ),
+      })
+    )
+    .optional()
+    .nullable(),
+});
+
+const complexSearchSchema = z.object({
+  results: z.array(spoonacularRecipeSummarySchema).default([]),
+  totalResults: z.number().optional().default(0),
+});
+
+const randomRecipesSchema = z.object({
+  recipes: z.array(spoonacularRecipeSummarySchema).default([]),
+});
 
 export class SpoonacularRecipeProvider extends BaseRecipeProvider {
   private apiKey: string | null = null;
@@ -71,18 +146,18 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
         throw new ProviderError(ProviderErrorType.API_ERROR, `API error: ${response.status}`, response.status);
       }
 
-      const data = await response.json();
+      const data = complexSearchSchema.parse(await response.json());
       this.clearError();
 
       logger.info('SpoonacularRecipeProvider.searchRecipes', 'Search completed', {
         query,
-        resultCount: (data.results || []).length,
+        resultCount: data.results.length,
         requestId,
       });
 
       return {
-        results: (data.results || []).map((r: any) => this.formatSummary(r)),
-        totalResults: data.totalResults || 0,
+        results: data.results.map(recipe => this.formatSummary(recipe)),
+        totalResults: data.totalResults,
         offset,
         limit,
       };
@@ -123,7 +198,7 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
         throw new ProviderError(ProviderErrorType.API_ERROR, `API error: ${response.status}`, response.status);
       }
 
-      const data = await response.json();
+      const data = spoonacularRecipeDetailsSchema.parse(await response.json());
       this.clearError();
 
       logger.info('SpoonacularRecipeProvider.getRecipeDetails', 'Recipe fetched', { recipeId });
@@ -164,12 +239,12 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
         throw new ProviderError(ProviderErrorType.API_ERROR, `API error: ${response.status}`, response.status);
       }
 
-      const data = await response.json();
+      const data = randomRecipesSchema.parse(await response.json());
       this.clearError();
 
-      logger.info('SpoonacularRecipeProvider.getRandomRecipes', 'Random recipes fetched', { count: (data.recipes || []).length });
+      logger.info('SpoonacularRecipeProvider.getRandomRecipes', 'Random recipes fetched', { count: data.recipes.length });
 
-      return (data.recipes || []).map((r: any) => this.formatSummary(r));
+      return data.recipes.map(recipe => this.formatSummary(recipe));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       this.recordError(errorMsg);
@@ -206,15 +281,15 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
         throw new ProviderError(ProviderErrorType.API_ERROR, `API error: ${response.status}`, response.status);
       }
 
-      const data = await response.json();
+      const data = complexSearchSchema.parse(await response.json());
       this.clearError();
 
       logger.info('SpoonacularRecipeProvider.getRecipesByCuisine', 'Cuisine recipes fetched', {
         cuisine,
-        count: (data.results || []).length,
+        count: data.results.length,
       });
 
-      return (data.results || []).map((r: any) => this.formatSummary(r));
+      return data.results.map(recipe => this.formatSummary(recipe));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       this.recordError(errorMsg);
@@ -251,15 +326,15 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
         throw new ProviderError(ProviderErrorType.API_ERROR, `API error: ${response.status}`, response.status);
       }
 
-      const data = await response.json();
+      const data = complexSearchSchema.parse(await response.json());
       this.clearError();
 
       logger.info('SpoonacularRecipeProvider.getRecipesByDiet', 'Diet recipes fetched', {
         diet,
-        count: (data.results || []).length,
+        count: data.results.length,
       });
 
-      return (data.results || []).map((r: any) => this.formatSummary(r));
+      return data.results.map(recipe => this.formatSummary(recipe));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       this.recordError(errorMsg);
@@ -271,32 +346,57 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
   /**
    * Format recipe from API response to RecipeSummary
    */
-  private formatSummary(apiRecipe: any): RecipeSummary {
+  private formatSummary(apiRecipe: z.infer<typeof spoonacularRecipeSummarySchema>): RecipeSummary {
+    const calories = apiRecipe.nutrition?.nutrients?.find(nutrient => nutrient.name === "Calories")?.amount;
+
     return {
       id: apiRecipe.id,
       title: apiRecipe.title,
-      image: apiRecipe.image,
-      readyInMinutes: apiRecipe.readyInMinutes || 30,
-      servings: apiRecipe.servings || 4,
-      sourceUrl: apiRecipe.sourceUrl || '',
-      cuisines: apiRecipe.cuisines || [],
-      diets: apiRecipe.diets || [],
-      difficulty: apiRecipe.difficulty || 'medium',
-      calories: apiRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
+      image: apiRecipe.image || RECIPE_PLACEHOLDER_IMAGE,
+      readyInMinutes: apiRecipe.readyInMinutes ?? 30,
+      servings: apiRecipe.servings ?? 4,
+      sourceUrl: apiRecipe.sourceUrl ?? "",
+      cuisines: apiRecipe.cuisines ?? [],
+      diets: apiRecipe.diets ?? [],
+      difficulty: "medium",
+      calories: calories ? Math.round(calories) : undefined,
     };
   }
 
   /**
    * Format recipe from API response to RecipeDetails
    */
-  private formatDetails(apiRecipe: any): RecipeDetails {
+  private formatDetails(apiRecipe: z.infer<typeof spoonacularRecipeDetailsSchema>): RecipeDetails {
     return {
       ...this.formatSummary(apiRecipe),
-      summary: apiRecipe.summary || '',
-      instructions: apiRecipe.instructions || '',
-      extendedIngredients: apiRecipe.extendedIngredients || [],
-      analyzedInstructions: apiRecipe.analyzedInstructions || [],
-      nutrition: apiRecipe.nutrition || {},
+      summary: apiRecipe.summary ?? "",
+      instructions: apiRecipe.instructions ?? "",
+      extendedIngredients: (apiRecipe.extendedIngredients ?? []).map(ingredient => ({
+        id: ingredient.id,
+        original: ingredient.original,
+        name: ingredient.name,
+        amount: ingredient.amount,
+        unit: ingredient.unit ?? "",
+      })),
+      analyzedInstructions: (apiRecipe.analyzedInstructions ?? []).map(group => ({
+        name: group.name ?? "",
+        steps: group.steps.map(step => ({
+          number: step.number,
+          step: step.step,
+          ingredients: step.ingredients ?? undefined,
+          equipment: step.equipment ?? undefined,
+        })),
+      })),
+      nutrition: apiRecipe.nutrition
+        ? {
+            nutrients:
+              apiRecipe.nutrition.nutrients?.map(nutrient => ({
+                name: nutrient.name,
+                amount: nutrient.amount,
+                unit: nutrient.unit ?? "",
+              })) ?? [],
+          }
+        : undefined,
     };
   }
 }

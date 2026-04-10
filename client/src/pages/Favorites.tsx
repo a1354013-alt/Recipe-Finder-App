@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
+import type { FavoriteListItem, ShoppingListSummary } from '@shared/types';
 
 export default function Favorites() {
   const [, setLocation] = useLocation();
@@ -40,7 +41,7 @@ export default function Favorites() {
       toast.success('Recipe removed from favorites');
       favoritesQuery.refetch();
     },
-    onError: (error) => {
+    onError: () => {
       toast.error('Failed to remove favorite');
     },
   });
@@ -163,14 +164,16 @@ export default function Favorites() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favorites.map((fav: any) => {
+                {favorites.map((fav: FavoriteListItem) => {
                   const recipe: Recipe = {
                     id: fav.recipeId,
                     title: fav.recipeName,
-                    image: fav.recipeImage || '/images/recipe-placeholder.jpg',
+                    image: fav.recipeImage || '',
                     readyInMinutes: 0,
                     servings: 0,
                     sourceUrl: '',
+                    cuisines: [],
+                    diets: [],
                   };
                   return (
                     <div key={fav.id} className="relative">
@@ -253,7 +256,7 @@ export default function Favorites() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {shoppingLists.map((list: any) => (
+                {shoppingLists.map((list: ShoppingListSummary) => (
                   <div
                     key={list.id}
                     className="p-6 bg-card border border-border rounded-lg hover:shadow-lg transition-shadow cursor-pointer"

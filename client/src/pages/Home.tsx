@@ -14,12 +14,13 @@ import RecipeCard from '@/components/RecipeCard';
 import { useRandomRecipes, useRecipesByCuisine } from '@/lib/recipes';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { RecipeSummary } from '@shared/types';
 
 interface RecipeSectionProps {
   title: string;
-  data?: any[];
+  data?: RecipeSummary[];
   isLoading: boolean;
-  error?: Error | null;
+  error?: { message?: string } | null;
   refetch: () => void;
 }
 
