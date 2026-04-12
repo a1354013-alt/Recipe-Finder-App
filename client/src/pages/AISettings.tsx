@@ -122,7 +122,11 @@ export default function AISettings() {
             AI 提供者設定
           </h1>
           <p className="text-lg text-muted-foreground font-lato max-w-2xl mx-auto">
-            選擇使用 Manus AI 或本地 Ollama 進行圖片識別和食譜推薦
+            選擇使用 Manus AI 或本地 Ollama 進行圖片識別和食譜推薦。
+            <br />
+            <span className="text-sm text-orange-600 mt-2 block">
+              ⚠️ 設定變更僅在當前 server session 生效，重新啟動後將恢復預設值。
+            </span>
           </p>
         </div>
       </section>

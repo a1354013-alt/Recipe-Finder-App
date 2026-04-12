@@ -68,10 +68,10 @@ export interface RecipeSearchResult {
 export interface RecipeSearchParams {
   query: string;
   offset?: number;
-  limit?: number;
+  number?: number;
   filters?: {
     cookingTime?: string[];
-    calories?: string[];
+    calories?: string[][];
     difficulty?: string[];
     diets?: string[];
   };

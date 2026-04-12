@@ -51,7 +51,12 @@ export async function generateImage(
     baseUrl
   ).toString();
 
-  const response = await httpFetch<any>(fullUrl, {
+  const response = await httpFetch<{
+    image: {
+      b64Json: string;
+      mimeType: string;
+    };
+  }>(fullUrl, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -65,12 +70,7 @@ export async function generateImage(
     }),
   });
 
-  const result = response.data as {
-    image: {
-      b64Json: string;
-      mimeType: string;
-    };
-  };
+  const result = response.data;
   const base64Data = result.image.b64Json;
   const buffer = Buffer.from(base64Data, "base64");
 

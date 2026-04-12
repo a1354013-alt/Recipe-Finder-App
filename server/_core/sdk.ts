@@ -153,11 +153,11 @@ class SDKServer {
       accessToken,
     } as ExchangeTokenResponse);
     const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
+      (data as unknown as { platforms?: unknown; platform?: string }).platforms,
+      (data as unknown as { platforms?: unknown; platform?: string }).platform ?? data.platform ?? null
     );
     return {
-      ...(data as any),
+      ...(data as unknown as GetUserInfoResponse),
       platform: loginMethod,
       loginMethod,
     } as GetUserInfoResponse;
@@ -275,12 +275,12 @@ class SDKServer {
       );
 
       const loginMethod = this.deriveLoginMethod(
-        (data as any)?.platforms,
-        (data as any)?.platform ?? data.platform ?? null
+        (data as unknown as { platforms?: unknown; platform?: string })?.platforms,
+        (data as unknown as { platforms?: unknown; platform?: string })?.platform ?? data.platform ?? null
       );
       logger.info("[Auth] User info retrieved from OAuth server");
       return {
-        ...(data as any),
+        ...(data as unknown as GetUserInfoWithJwtResponse),
         platform: loginMethod,
         loginMethod,
       } as GetUserInfoWithJwtResponse;

@@ -120,9 +120,9 @@ export default function AIRecognition() {
         maxRecipes: 5,
       });
 
-      // Convert recommendations to Recipe format for display
+      // Convert recommendations to Recipe format for display (AI recommendations only)
       const recipeObjects: Recipe[] = recipes.recipes.map((recipe: RecommendedRecipe, idx: number) => ({
-        id: idx,
+        id: -1 - idx, // Use negative IDs to distinguish AI recommendations from real recipes
         title: recipe.name || 'Recipe',
         image: RECIPE_PLACEHOLDER_IMAGE,
         readyInMinutes: recipe.cookTime || 30,

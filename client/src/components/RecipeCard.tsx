@@ -41,42 +41,62 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 export default function RecipeCard({ recipe }: RecipeCardProps) {
   const [imageSrc, setImageSrc] = useState(recipe.image || RECIPE_PLACEHOLDER_IMAGE);
   const difficultyKey = (recipe.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_COLORS;
+  const isAIRecommendation = recipe.id < 0;
+
+  const handleCardClick = () => {
+    if (isAIRecommendation) {
+      // AI recommendations cannot be viewed in detail
+      return;
+    }
+    // Normal recipe navigation will be handled by Link
+  };
 
   return (
-    <Link href={`/recipe/${recipe.id}`}>
-      <a className="recipe-card group block h-full">
-        {/* Recipe Image Container */}
-        <div className="relative overflow-hidden bg-gray-200 aspect-video">
-          <img
-            src={imageSrc}
-            alt={recipe.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            loading="lazy"
-            onError={() => setImageSrc(RECIPE_PLACEHOLDER_IMAGE)}
-          />
+    <div className="recipe-card group block h-full">
+      {/* Recipe Image Container */}
+      <div className="relative overflow-hidden bg-gray-200 aspect-video">
+        <img
+          src={imageSrc}
+          alt={recipe.title}
+          className={`w-full h-full object-cover transition-transform duration-500 ${
+            isAIRecommendation ? '' : 'group-hover:scale-110'
+          }`}
+          loading="lazy"
+          onError={() => setImageSrc(RECIPE_PLACEHOLDER_IMAGE)}
+        />
 
-          {/* Overlay with Info on Hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-            <div className="flex flex-wrap gap-1">
-              {recipe.cuisines?.slice(0, 2).map((cuisine) => (
-                <span
-                  key={cuisine}
-                  className="ingredient-tag accent text-xs"
-                >
-                  {cuisine}
-                </span>
-              ))}
-            </div>
+        {/* AI Recommendation Badge */}
+        {isAIRecommendation && (
+          <div className="absolute top-3 left-3 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-semibold">
+            AI 建議
           </div>
+        )}
 
-          {/* Difficulty Badge */}
-          {recipe.difficulty && (
-            <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-lato font-semibold ${DIFFICULTY_COLORS[difficultyKey]}`}>
-              {DIFFICULTY_LABELS[difficultyKey]}
-            </div>
-          )}
+        {/* Overlay with Info on Hover */}
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 flex flex-col justify-end p-4 ${
+          isAIRecommendation ? '' : 'group-hover:opacity-100'
+        }`}>
+          <div className="flex flex-wrap gap-1">
+            {recipe.cuisines?.slice(0, 2).map((cuisine) => (
+              <span
+                key={cuisine}
+                className="ingredient-tag accent text-xs"
+              >
+                {cuisine}
+              </span>
+            ))}
+          </div>
+        </div>
 
-          {/* Favorite Button */}
+        {/* Difficulty Badge */}
+        {recipe.difficulty && (
+          <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-lato font-semibold ${DIFFICULTY_COLORS[difficultyKey]}`}>
+            {DIFFICULTY_LABELS[difficultyKey]}
+          </div>
+        )}
+
+        {/* Favorite Button - only for real recipes */}
+        {!isAIRecommendation && (
           <div className="absolute top-3 left-3">
             <FavoriteButton
               recipeId={recipe.id}
@@ -84,44 +104,51 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
               recipeImage={imageSrc}
             />
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Recipe Info */}
-        <div className="p-4 flex flex-col gap-3">
-          <h3 className="font-merriweather font-bold text-orange-600 text-lg line-clamp-2 leading-tight">
-            {recipe.title}
-          </h3>
+      {/* Recipe Info */}
+      <div className="p-4 flex flex-col gap-3">
+        <h3 className="font-merriweather font-bold text-orange-600 text-lg line-clamp-2 leading-tight">
+          {recipe.title}
+        </h3>
 
-          {/* Quick Stats */}
-          <div className="flex items-center gap-3 text-sm text-gray-600 font-lato flex-wrap">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-orange-600" />
-              <span>{recipe.readyInMinutes} min</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-orange-600" />
-              <span>{recipe.servings} servings</span>
-            </div>
-            {recipe.calories && (
-              <div className="flex items-center gap-1">
-                <Flame className="w-4 h-4 text-red-500" />
-                <span>{recipe.calories} kcal</span>
-              </div>
-            )}
+        {/* Quick Stats */}
+        <div className="flex items-center gap-3 text-sm text-gray-600 font-lato flex-wrap">
+          <div className="flex items-center gap-1">
+            <Clock className="w-4 h-4 text-orange-600" />
+            <span>{recipe.readyInMinutes} min</span>
           </div>
-
-          {/* Diet Tags */}
-          {recipe.diets && recipe.diets.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {recipe.diets.slice(0, 2).map((diet) => (
-                <span key={diet} className="ingredient-tag text-xs">
-                  {diet}
-                </span>
-              ))}
+          <div className="flex items-center gap-1">
+            <Users className="w-4 h-4 text-orange-600" />
+            <span>{recipe.servings} servings</span>
+          </div>
+          {recipe.calories && (
+            <div className="flex items-center gap-1">
+              <Flame className="w-4 h-4 text-red-500" />
+              <span>{recipe.calories} kcal</span>
             </div>
           )}
         </div>
-      </a>
-    </Link>
+
+        {/* Diet Tags */}
+        {recipe.diets && recipe.diets.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {recipe.diets.slice(0, 2).map((diet) => (
+              <span key={diet} className="ingredient-tag text-xs">
+                {diet}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* AI Recommendation Note */}
+        {isAIRecommendation && (
+          <p className="text-xs text-muted-foreground font-lato">
+            基於辨識食材的 AI 建議食譜
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

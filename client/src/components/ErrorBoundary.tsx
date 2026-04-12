@@ -11,6 +11,13 @@ interface State {
   requestId?: string;
 }
 
+interface ErrorWithData extends Error {
+  data?: {
+    requestId?: string;
+    code?: string;
+  };
+}
+
 export default class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -29,11 +36,12 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     }
 
     // 檢查 error.cause 或其他屬性
-    if ((error as any).data?.requestId) {
-      requestId = (error as any).data.requestId;
+    const errorWithData = error as ErrorWithData;
+    if (errorWithData.data?.requestId) {
+      requestId = errorWithData.data.requestId;
     }
-    if ((error as any).data?.code) {
-      errorCode = (error as any).data.code;
+    if (errorWithData.data?.code) {
+      errorCode = errorWithData.data.code;
     }
 
     return { 

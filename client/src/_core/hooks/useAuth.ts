@@ -61,7 +61,7 @@ export function useAuth(options?: UseAuthOptions) {
     logoutMutation.isPending,
   ]);
 
-  // 儲存用戶信息到 localStorage（副作用應在 useEffect 中）
+  // 清除用戶信息從 localStorage（副作用應在 useEffect 中）
   useEffect(() => {
     if (typeof window === "undefined") return;
 

@@ -16,6 +16,17 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 
 /**
+ * 擴展 Request 介面以包含 id 屬性
+ */
+declare global {
+  namespace Express {
+    interface Request {
+      id: string;
+    }
+  }
+}
+
+/**
  * 驗證 x-request-id 格式
  * 只允許 [a-zA-Z0-9-_]{1,64}
  */
@@ -45,7 +56,7 @@ export function requestIdMiddleware(
   }
   
   // 存入 req 物件供後續使用
-  (req as any).id = requestId;
+  req.id = requestId;
   
   // 設定 response header
   req.id = requestId;

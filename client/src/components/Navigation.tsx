@@ -13,6 +13,7 @@ import { Link, useLocation } from 'wouter';
 import { Search, ChefHat } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 interface NavigationProps {
   onSearch?: (query: string) => void;
@@ -21,6 +22,7 @@ interface NavigationProps {
 export default function Navigation({ onSearch }: NavigationProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [location] = useLocation();
+  const { isAuthenticated, user } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,50 +82,64 @@ export default function Navigation({ onSearch }: NavigationProps) {
               Home
             </a>
           </Link>
-          <Link href="/favorites">
-            <a
-              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
-                location === '/favorites'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-secondary hover:text-accent'
-              }`}
-            >
-              ❤️ Favorites
-            </a>
-          </Link>
-          <Link href="/ai-recognition">
-            <a
-              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
-                location === '/ai-recognition'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-secondary hover:text-accent'
-              }`}
-            >
-              ✨ AI 識別
-            </a>
-          </Link>
-          <Link href="/ai-settings">
-            <a
-              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
-                location === '/ai-settings'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-secondary hover:text-accent'
-              }`}
-            >
-              ⚙️ 設定
-            </a>
-          </Link>
-          <Link href="/ai-history">
-            <a
-              className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
-                location === '/ai-history'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-foreground hover:bg-secondary hover:text-accent'
-              }`}
-            >
-              📜 History
-            </a>
-          </Link>
+          
+          {isAuthenticated && (
+            <>
+              <Link href="/favorites">
+                <a
+                  className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
+                    location === '/favorites'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-foreground hover:bg-secondary hover:text-accent'
+                  }`}
+                >
+                  ❤️ Favorites
+                </a>
+              </Link>
+              
+              <Link href="/ai-recognition">
+                <a
+                  className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
+                    location === '/ai-recognition'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-foreground hover:bg-secondary hover:text-accent'
+                  }`}
+                  title="AI-powered ingredient recognition and recipe recommendations"
+                >
+                  ✨ AI 識別
+                </a>
+              </Link>
+              
+              <Link href="/ai-history">
+                <a
+                  className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
+                    location === '/ai-history'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-foreground hover:bg-secondary hover:text-accent'
+                  }`}
+                  title="View your AI recognition history"
+                >
+                  📜 History
+                </a>
+              </Link>
+              
+              {user?.role === 'admin' && (
+                <Link href="/ai-settings">
+                  <a
+                    className={`px-4 py-2 rounded-lg font-lato font-medium transition-all duration-300 ${
+                      location === '/ai-settings'
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-foreground hover:bg-secondary hover:text-accent'
+                    }`}
+                    title="AI provider settings (Admin only)"
+                  >
+                    ⚙️ Settings
+                  </a>
+                </Link>
+              )}
+            </>
+          )}
+          
           <ThemeToggle />
         </div>
       </div>

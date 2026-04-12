@@ -418,12 +418,22 @@ export async function getAIRecognitionHistoryByIdForUser(
   };
 }
 
-export async function deleteAIRecognitionHistory(userId: number, historyId: number): Promise<void> {
+export async function updateAIRecognitionHistory(
+  userId: number,
+  historyId: number,
+  recommendedRecipes: string[]
+): Promise<void> {
   const db = await getDbOrThrow();
   await db
-    .delete(schema.aiRecognitionHistory)
+    .update(schema.aiRecognitionHistory)
+    .set({
+      recommendedRecipes: JSON.stringify(recommendedRecipes),
+    })
     .where(
-      and(eq(schema.aiRecognitionHistory.id, historyId), eq(schema.aiRecognitionHistory.userId, userId))
+      and(
+        eq(schema.aiRecognitionHistory.id, historyId),
+        eq(schema.aiRecognitionHistory.userId, userId)
+      )
     );
 }
 

@@ -92,6 +92,30 @@ export async function recognizeIngredients(input: RecognizeIngredientsInput) {
     input.requestId
   );
 
+  // Write to AI recognition history
+  try {
+    await addAIRecognitionHistory(
+      input.userId,
+      imageUrl,
+      result.ingredients,
+      [], // recommendedRecipes will be added later in getRecipeRecommendations
+      input.requestId
+    );
+    logger.info(
+      "[AI] Recognition history saved",
+      { userId: input.userId },
+      undefined,
+      input.requestId
+    );
+  } catch (error) {
+    logger.error(
+      "[AI] Failed to save recognition history",
+      error instanceof Error ? error : new Error(String(error)),
+      undefined,
+      input.requestId
+    );
+  }
+
   auditLogManager.log({
     action: "ai_image_recognized",
     userId: input.userId,
@@ -137,6 +161,37 @@ export async function getRecipeRecommendations(input: RecipeRecommendationsInput
     undefined,
     input.requestId
   );
+
+  // Update AI recognition history with recommended recipes
+  try {
+    // Find the most recent recognition history for this user (within last 5 minutes)
+    const recentHistory = await getUserAIRecognitionHistory(input.userId, 1);
+    if (recentHistory.length > 0) {
+      const latestRecord = recentHistory[0];
+      const recordAge = Date.now() - new Date(latestRecord.createdAt).getTime();
+      if (recordAge < 5 * 60 * 1000) { // 5 minutes
+        // Update the record with recommended recipes
+        await updateAIRecognitionHistory(
+          input.userId,
+          latestRecord.id,
+          result.recipes.map(r => r.name || 'Unknown Recipe')
+        );
+        logger.info(
+          "[AI] Recommendation history updated",
+          { userId: input.userId, historyId: latestRecord.id },
+          undefined,
+          input.requestId
+        );
+      }
+    }
+  } catch (error) {
+    logger.error(
+      "[AI] Failed to update recommendation history",
+      error instanceof Error ? error : new Error(String(error)),
+      undefined,
+      input.requestId
+    );
+  }
 
   auditLogManager.log({
     action: "recipe_recommendation_requested",
