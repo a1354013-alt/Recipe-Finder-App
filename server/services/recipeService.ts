@@ -2,9 +2,12 @@ import { logger } from "../_core/logger";
 import {
   RecipeCollectionWithStatus,
   RecipeDetailsWithStatus,
+  RecipeSearchFilters,
   RecipeSearchParams,
   RecipeSearchResultWithStatus,
   RecipeServiceInfo,
+  RecipeSummary,
+  RecipeDifficultyFilter,
 } from "../../shared/types";
 import { LocalRecipeProvider } from "./providers/LocalRecipeProvider";
 import {
@@ -64,7 +67,7 @@ class RecipeService {
   }
 
   async searchRecipes(params: RecipeSearchParams): Promise<RecipeSearchResultWithStatus> {
-    const { query, offset = 0, limit = 12, requestId } = params;
+    const { query, offset = 0, limit = 12, filters, requestId } = params;
     const provider = await this.resolvePrimaryProvider();
 
     if (!query.trim()) {
@@ -81,6 +84,8 @@ class RecipeService {
       const result = await provider.searchRecipes(params);
       return {
         ...result,
+        offset,
+        limit,
         serviceStatus: this.getSuccessStatus(provider.getName() as "local" | "spoonacular", requestId),
       };
     } catch (error) {
@@ -88,10 +93,15 @@ class RecipeService {
       const fallbackResult = await this.localProvider.searchRecipes(params);
       return {
         ...fallbackResult,
+        offset,
+        limit,
         serviceStatus: this.getErrorStatus(error, requestId),
       };
     }
   }
+
+  // Filters are expected to be handled by providers in a consistent contract.
+  // The recipe service should not re-apply filtering over provider-paginated results.
 
   async getRecipeDetails(recipeId: number, requestId?: string): Promise<RecipeDetailsWithStatus> {
     const provider = await this.resolvePrimaryProvider();

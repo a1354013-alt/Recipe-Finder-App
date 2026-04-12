@@ -109,9 +109,12 @@ export default function AIHistory() {
                     Recognized Ingredients
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.recognizedIngredients.map(ingredient => (
-                      <span key={ingredient} className="ingredient-tag accent text-sm">
-                        {ingredient}
+                    {item.recognizedIngredients.map((ingredient) => (
+                      <span
+                        key={`${ingredient.name}-${ingredient.quantity}-${ingredient.unit}`}
+                        className="ingredient-tag accent text-sm"
+                      >
+                        {ingredient.name}
                       </span>
                     ))}
                   </div>
@@ -139,7 +142,9 @@ export default function AIHistory() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
-                      const ingredients = item.recognizedIngredients.join(', ');
+                      const ingredients = item.recognizedIngredients
+                        .map((ingredient) => ingredient.name)
+                        .join(', ');
                       setLocation(`/search?q=${encodeURIComponent(ingredients)}`);
                     }}
                     variant="outline"

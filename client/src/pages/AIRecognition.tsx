@@ -20,13 +20,7 @@ import { trpc } from '@/lib/trpc';
 import { Recipe } from '@/lib/recipes';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
-import { RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
-
-interface RecognizedIngredient {
-  name: string;
-  quantity: string;
-  unit: string;
-}
+import { AIRecognizedIngredient, RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
 
 interface RecommendedRecipe {
   name: string;
@@ -41,7 +35,7 @@ export default function AIRecognition() {
   const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [recognizedIngredients, setRecognizedIngredients] = useState<RecognizedIngredient[]>([]);
+  const [recognizedIngredients, setRecognizedIngredients] = useState<AIRecognizedIngredient[]>([]);
   const [recommendedRecipes, setRecommendedRecipes] = useState<Recipe[]>([]);
   const [confidence, setConfidence] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearch, useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
 import AdvancedFilters, { FilterState } from '@/components/AdvancedFilters';
@@ -9,6 +9,15 @@ import { Button } from '@/components/ui/button';
 import type { RecipeSummary } from '@shared/types';
 
 const ITEMS_PER_PAGE = 12;
+
+function parseFiltersFromQuery(searchParams: URLSearchParams): FilterState {
+  return {
+    cookingTime: searchParams.getAll('cookingTime'),
+    calories: searchParams.getAll('calories'),
+    difficulty: searchParams.getAll('difficulty'),
+    diets: searchParams.getAll('diets'),
+  };
+}
 
 export default function SearchResults() {
   const query = useSearch();
@@ -21,17 +30,49 @@ export default function SearchResults() {
     diets: [],
   });
 
-  const searchQuery = new URLSearchParams(query).get('q') || '';
-  const searchResultsQuery = useSearchRecipes(searchQuery, { offset: 0, number: ITEMS_PER_PAGE });
-  const allResults = searchResultsQuery.data || [];
-  const totalResults = searchResultsQuery.data?.length ?? 0;
+  const searchParams = new URLSearchParams(query);
+  const searchQuery = searchParams.get('q') || '';
+  const parsedFilters = parseFiltersFromQuery(searchParams);
+
+  useEffect(() => {
+    setFilters(parsedFilters);
+  }, [query]);
+
+  const searchResultsQuery = useSearchRecipes(searchQuery, {
+    offset: 0,
+    limit: ITEMS_PER_PAGE,
+    filters: {
+      cookingTime: filters.cookingTime,
+      calories: filters.calories,
+      difficulty: filters.difficulty,
+      diets: filters.diets,
+    },
+  });
+
+  const allResults = searchResultsQuery.data?.results || [];
+  const totalResults = searchResultsQuery.data?.totalResults ?? 0;
 
   const handleSearch = (newQuery: string) => {
-    setLocation(`/search?q=${encodeURIComponent(newQuery)}`);
+    const newSearchParams = new URLSearchParams();
+    newSearchParams.set('q', newQuery);
+    filters.cookingTime.forEach((value) => newSearchParams.append('cookingTime', value));
+    filters.calories.forEach((value) => newSearchParams.append('calories', value));
+    filters.difficulty.forEach((value) => newSearchParams.append('difficulty', value));
+    filters.diets.forEach((value) => newSearchParams.append('diets', value));
+    setLocation(`/search?${newSearchParams.toString()}`);
   };
 
   const handleFilterChange = (newFilters: FilterState) => {
     setFilters(newFilters);
+    const newSearchParams = new URLSearchParams();
+    if (searchQuery) {
+      newSearchParams.set('q', searchQuery);
+    }
+    newFilters.cookingTime.forEach((value) => newSearchParams.append('cookingTime', value));
+    newFilters.calories.forEach((value) => newSearchParams.append('calories', value));
+    newFilters.difficulty.forEach((value) => newSearchParams.append('difficulty', value));
+    newFilters.diets.forEach((value) => newSearchParams.append('diets', value));
+    setLocation(`/search?${newSearchParams.toString()}`);
   };
 
   return (
@@ -59,7 +100,7 @@ export default function SearchResults() {
           </p>
           {filters.difficulty.length + filters.diets.length + filters.cookingTime.length + filters.calories.length > 0 && (
             <p className="text-sm text-gray-500 font-lato mt-2">
-              Filters are captured in UI and ready for backend expansion.
+              Filters are applied to your search results.
             </p>
           )}
         </div>

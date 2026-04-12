@@ -13,6 +13,11 @@ import {
 import { ManusAiProvider } from "./providers/ManusAiProvider";
 import { OllamaAiProvider } from "./providers/OllamaAiProvider";
 import { ImageMimeType } from "./types";
+import {
+  addAIRecognitionHistory,
+  getUserAIRecognitionHistory,
+  updateAIRecognitionHistory,
+} from "../../db";
 
 type AuthenticatedUserId = string | number;
 
@@ -95,7 +100,7 @@ export async function recognizeIngredients(input: RecognizeIngredientsInput) {
   // Write to AI recognition history
   try {
     await addAIRecognitionHistory(
-      input.userId,
+      Number(input.userId),
       imageUrl,
       result.ingredients,
       [], // recommendedRecipes will be added later in getRecipeRecommendations
@@ -164,17 +169,15 @@ export async function getRecipeRecommendations(input: RecipeRecommendationsInput
 
   // Update AI recognition history with recommended recipes
   try {
-    // Find the most recent recognition history for this user (within last 5 minutes)
-    const recentHistory = await getUserAIRecognitionHistory(input.userId, 1);
+    const recentHistory = await getUserAIRecognitionHistory(Number(input.userId), 1);
     if (recentHistory.length > 0) {
       const latestRecord = recentHistory[0];
       const recordAge = Date.now() - new Date(latestRecord.createdAt).getTime();
-      if (recordAge < 5 * 60 * 1000) { // 5 minutes
-        // Update the record with recommended recipes
+      if (recordAge < 5 * 60 * 1000) {
         await updateAIRecognitionHistory(
-          input.userId,
+          Number(input.userId),
           latestRecord.id,
-          result.recipes.map(r => r.name || 'Unknown Recipe')
+          result.recipes.map((r) => r.name || 'Unknown Recipe')
         );
         logger.info(
           "[AI] Recommendation history updated",

@@ -5,6 +5,7 @@ import * as schema from "../drizzle/schema";
 import type { InsertUser } from "../drizzle/schema";
 import type {
   AIHistoryRecord,
+  AIRecognizedIngredient,
   FavoriteListItem,
   ShoppingListItemRecord,
   ShoppingListSummary,
@@ -352,7 +353,7 @@ export async function deleteShoppingListItem(itemId: number): Promise<void> {
 export async function addAIRecognitionHistory(
   userId: number,
   imageUrl: string,
-  recognizedIngredients: string[],
+  recognizedIngredients: AIRecognizedIngredient[],
   recommendedRecipes?: string[],
   requestId?: string
 ): Promise<void> {
@@ -382,7 +383,7 @@ export async function getUserAIRecognitionHistory(
     id: record.id,
     userId: record.userId,
     imageUrl: record.imageUrl,
-    recognizedIngredients: safeParseStringArray(record.recognizedIngredients),
+    recognizedIngredients: safeParseRecognizedIngredients(record.recognizedIngredients),
     recommendedRecipes: safeParseStringArray(record.recommendedRecipes),
     requestId: record.requestId,
     createdAt: record.createdAt,
@@ -411,11 +412,42 @@ export async function getAIRecognitionHistoryByIdForUser(
     id: record.id,
     userId: record.userId,
     imageUrl: record.imageUrl,
-    recognizedIngredients: safeParseStringArray(record.recognizedIngredients),
+    recognizedIngredients: safeParseRecognizedIngredients(record.recognizedIngredients),
     recommendedRecipes: safeParseStringArray(record.recommendedRecipes),
     requestId: record.requestId,
     createdAt: record.createdAt,
   };
+}
+
+function safeParseRecognizedIngredients(raw: string | null): AIRecognizedIngredient[] {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((item): item is AIRecognizedIngredient => {
+        return (
+          typeof item === "object" &&
+          item !== null &&
+          typeof (item as any).name === "string" &&
+          typeof (item as any).quantity === "string" &&
+          typeof (item as any).unit === "string"
+        );
+      })
+      .map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 export async function updateAIRecognitionHistory(

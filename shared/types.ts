@@ -65,16 +65,28 @@ export interface RecipeSearchResult {
   limit: number;
 }
 
+export type RecipeCookingTimeFilter = "quick" | "medium" | "long";
+export type RecipeCaloriesFilter = "low" | "medium" | "high";
+export type RecipeDifficultyFilter = "easy" | "medium" | "hard";
+
+export interface RecipeSearchFilters {
+  cookingTime?: RecipeCookingTimeFilter[];
+  calories?: RecipeCaloriesFilter[];
+  difficulty?: RecipeDifficultyFilter[];
+  diets?: string[];
+}
+
+export interface AIRecognizedIngredient {
+  name: string;
+  quantity: string;
+  unit: string;
+}
+
 export interface RecipeSearchParams {
   query: string;
   offset?: number;
-  number?: number;
-  filters?: {
-    cookingTime?: string[];
-    calories?: string[][];
-    difficulty?: string[];
-    diets?: string[];
-  };
+  limit?: number;
+  filters?: RecipeSearchFilters;
   requestId?: string;
 }
 
@@ -122,7 +134,7 @@ export interface AIHistoryRecord {
   id: AIRecognitionHistory["id"];
   userId: AIRecognitionHistory["userId"];
   imageUrl: AIRecognitionHistory["imageUrl"];
-  recognizedIngredients: string[];
+  recognizedIngredients: AIRecognizedIngredient[];
   recommendedRecipes: string[];
   requestId: AIRecognitionHistory["requestId"];
   createdAt: AIRecognitionHistory["createdAt"];

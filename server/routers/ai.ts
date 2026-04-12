@@ -64,7 +64,7 @@ export const aiRouter = router({
       })
     ),
 
-  getConfig: publicProcedure.query(() => getAiConfig()),
+  getConfig: adminProcedure.query(() => getAiConfig()),
 
   setProvider: adminProcedure
     .input(z.object({ provider: z.enum(["manus", "ollama"]) }))

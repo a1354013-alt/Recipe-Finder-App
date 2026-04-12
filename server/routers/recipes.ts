@@ -196,15 +196,28 @@ export const recipeRouter = router({
       z.object({
         query: z.string(),
         offset: z.number().default(0),
-        number: z.number().default(12),
+        limit: z.number().default(12),
+        filters: z
+          .object({
+            cookingTime: z.array(z.enum(["quick", "medium", "long"])).optional(),
+            calories: z.array(z.enum(["low", "medium", "high"])).optional(),
+            difficulty: z.array(z.enum(["easy", "medium", "hard"])).optional(),
+            diets: z.array(z.string()).optional(),
+          })
+          .optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      logger.info('[RecipeRouter] Searching recipes', `Query: ${input.query}`, { query: input.query, requestId: ctx.requestId });
+      logger.info(
+        '[RecipeRouter] Searching recipes',
+        `Query: ${input.query}`,
+        { query: input.query, requestId: ctx.requestId }
+      );
       const result = await searchRecipes({
         query: input.query,
         offset: input.offset,
-        limit: input.number,
+        limit: input.limit,
+        filters: input.filters,
         requestId: ctx.requestId,
       });
       return result;

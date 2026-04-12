@@ -43,15 +43,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const difficultyKey = (recipe.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_COLORS;
   const isAIRecommendation = recipe.id < 0;
 
-  const handleCardClick = () => {
-    if (isAIRecommendation) {
-      // AI recommendations cannot be viewed in detail
-      return;
-    }
-    // Normal recipe navigation will be handled by Link
-  };
-
-  return (
+  const cardBody = (
     <div className="recipe-card group block h-full">
       {/* Recipe Image Container */}
       <div className="relative overflow-hidden bg-gray-200 aspect-video">
@@ -150,5 +142,15 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         )}
       </div>
     </div>
+  );
+
+  if (isAIRecommendation) {
+    return cardBody;
+  }
+
+  return (
+    <Link href={`/recipe/${recipe.id}`} className="block h-full">
+      {cardBody}
+    </Link>
   );
 }

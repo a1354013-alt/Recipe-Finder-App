@@ -10,6 +10,7 @@ import { logger } from "../../_core/logger";
 import {
   RECIPE_PLACEHOLDER_IMAGE,
   RecipeDetails,
+  RecipeSearchFilters,
   RecipeSearchParams,
   RecipeSearchResult,
   RecipeSummary,
@@ -110,7 +111,7 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
    * Search recipes from Spoonacular API
    */
   async searchRecipes(params: RecipeSearchParams): Promise<RecipeSearchResult> {
-    const { query, offset = 0, limit = 12, requestId } = params;
+    const { query, offset = 0, limit = 12, filters, requestId } = params;
 
     try {
       if (!query || !query.trim()) {
@@ -129,6 +130,33 @@ export class SpoonacularRecipeProvider extends BaseRecipeProvider {
       url.searchParams.append('number', limit.toString());
       url.searchParams.append('offset', offset.toString());
       url.searchParams.append('apiKey', this.apiKey);
+
+      if (filters?.diets?.length) {
+        url.searchParams.append('diet', filters.diets[0]);
+      }
+
+      if (filters?.cookingTime?.length) {
+        const maxTime = filters.cookingTime.includes('quick')
+          ? 15
+          : filters.cookingTime.includes('medium')
+          ? 45
+          : undefined;
+        if (typeof maxTime === 'number') {
+          url.searchParams.append('maxReadyTime', maxTime.toString());
+        }
+      }
+
+      if (filters?.calories?.length) {
+        const calorieRange = filters.calories[0];
+        if (calorieRange === 'low') {
+          url.searchParams.append('maxCalories', '300');
+        } else if (calorieRange === 'medium') {
+          url.searchParams.append('minCalories', '301');
+          url.searchParams.append('maxCalories', '600');
+        } else if (calorieRange === 'high') {
+          url.searchParams.append('minCalories', '601');
+        }
+      }
 
       const response = await this.withTimeout(fetch(url.toString()), this.config.timeout || 5000);
 

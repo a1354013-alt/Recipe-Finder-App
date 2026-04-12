@@ -21,7 +21,8 @@ type AIProvider = 'manus' | 'ollama';
 export default function AISettings() {
   // All hooks must be called before any conditional returns
   const [, setLocation] = useLocation();
-  const { isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
+  const { user, isAuthenticated, loading } = useAuth({ redirectOnUnauthenticated: true });
+  const isAdmin = user?.role === 'admin';
   const [provider, setProvider] = useState<AIProvider>('manus');
   const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
   const [ollamaModel, setOllamaModel] = useState('llama2');
@@ -29,7 +30,10 @@ export default function AISettings() {
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const getConfigQuery = trpc.ai.getConfig.useQuery();
+  const getConfigQuery = trpc.ai.getConfig.useQuery(undefined, {
+    enabled: isAdmin,
+    retry: false,
+  });
   const setProviderMutation = trpc.ai.setProvider.useMutation();
   const setOllamaConfigMutation = trpc.ai.setOllamaConfig.useMutation();
   const testConnectionMutation = trpc.ai.testOllamaConnection.useMutation();
@@ -58,6 +62,28 @@ export default function AISettings() {
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation onSearch={() => {}} />
+        <div className="container py-24 text-center">
+          <div className="mx-auto max-w-xl rounded-3xl border border-border bg-card p-10">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+            <h1 className="font-merriweather text-3xl font-bold text-foreground mb-2">
+              403 Forbidden
+            </h1>
+            <p className="text-muted-foreground font-lato mb-6">
+              您必須是管理員才能存取此頁面。
+            </p>
+            <Button onClick={() => setLocation('/')} variant="outline">
+              回到首頁
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleSearch = (query: string) => {

@@ -49,25 +49,17 @@ export type RecipeDetails = Recipe;
  */
 export function useSearchRecipes(
   query: string,
-  filters?: { offset?: number; number?: number }
+  options?: { offset?: number; limit?: number; filters?: { cookingTime?: string[]; calories?: string[]; difficulty?: string[]; diets?: string[] } }
 ) {
   return trpc.recipe.search.useQuery(
     {
       query,
-      offset: filters?.offset || 0,
-      number: filters?.number || 12,
+      offset: options?.offset || 0,
+      limit: options?.limit || 12,
+      filters: options?.filters,
     },
     {
-      select: (data) => {
-        // Normalize response format
-        if (Array.isArray(data)) {
-          return data;
-        }
-        if (data && 'results' in data) {
-          return data.results || [];
-        }
-        return [];
-      },
+      select: (data) => data,
       retry: 1,
       staleTime: 1000 * 60 * 5, // 5 minutes
       // Do NOT fallback to mock data on error

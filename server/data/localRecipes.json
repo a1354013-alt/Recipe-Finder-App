@@ -3,7 +3,7 @@
     {
       "id": 1,
       "title": "Classic Spaghetti Carbonara",
-      "image": "https://via.placeholder.com/300x200?text=Spaghetti+Carbonara",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 20,
       "servings": 4,
       "sourceUrl": "https://example.com/recipes/carbonara",
@@ -43,7 +43,7 @@
     {
       "id": 2,
       "title": "Vegetable Fried Rice",
-      "image": "https://via.placeholder.com/300x200?text=Fried+Rice",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 15,
       "servings": 4,
       "sourceUrl": "https://example.com/recipes/fried-rice",
@@ -65,7 +65,7 @@
     {
       "id": 3,
       "title": "Tomato Soup",
-      "image": "https://via.placeholder.com/300x200?text=Tomato+Soup",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 25,
       "servings": 4,
       "sourceUrl": "https://example.com/recipes/tomato-soup",
@@ -87,7 +87,7 @@
     {
       "id": 4,
       "title": "Caesar Salad",
-      "image": "https://via.placeholder.com/300x200?text=Caesar+Salad",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 10,
       "servings": 2,
       "sourceUrl": "https://example.com/recipes/caesar-salad",
@@ -109,7 +109,7 @@
     {
       "id": 5,
       "title": "Chicken Tikka Masala",
-      "image": "https://via.placeholder.com/300x200?text=Tikka+Masala",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 45,
       "servings": 4,
       "sourceUrl": "https://example.com/recipes/tikka-masala",
@@ -131,7 +131,7 @@
     {
       "id": 6,
       "title": "Beef Tacos",
-      "image": "https://via.placeholder.com/300x200?text=Beef+Tacos",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 20,
       "servings": 4,
       "sourceUrl": "https://example.com/recipes/beef-tacos",
@@ -153,7 +153,7 @@
     {
       "id": 7,
       "title": "Grilled Salmon",
-      "image": "https://via.placeholder.com/300x200?text=Grilled+Salmon",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 20,
       "servings": 2,
       "sourceUrl": "https://example.com/recipes/grilled-salmon",
@@ -175,7 +175,7 @@
     {
       "id": 8,
       "title": "Vegetable Stir Fry",
-      "image": "https://via.placeholder.com/300x200?text=Stir+Fry",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 15,
       "servings": 3,
       "sourceUrl": "https://example.com/recipes/stir-fry",
@@ -197,7 +197,7 @@
     {
       "id": 9,
       "title": "Margherita Pizza",
-      "image": "https://via.placeholder.com/300x200?text=Margherita+Pizza",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 30,
       "servings": 2,
       "sourceUrl": "https://example.com/recipes/margherita-pizza",
@@ -219,7 +219,7 @@
     {
       "id": 10,
       "title": "Pad Thai",
-      "image": "https://via.placeholder.com/300x200?text=Pad+Thai",
+      "image": "/images/recipe-placeholder.svg",
       "readyInMinutes": 20,
       "servings": 2,
       "sourceUrl": "https://example.com/recipes/pad-thai",
@@ -240,3 +240,4 @@
     }
   ]
 }
+
