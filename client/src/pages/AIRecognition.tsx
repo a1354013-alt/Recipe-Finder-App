@@ -18,9 +18,10 @@ import Navigation from '@/components/Navigation';
 import RecipeCard from '@/components/RecipeCard';
 import { trpc } from '@/lib/trpc';
 import { Recipe } from '@/lib/recipes';
+import type { AIRecognizedIngredient } from '@shared/types';
+import { RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
 import { toast } from 'sonner';
 import { useAuth } from '@/_core/hooks/useAuth';
-import { AIRecognizedIngredient, RECIPE_PLACEHOLDER_IMAGE } from '@shared/types';
 
 interface RecommendedRecipe {
   name: string;
@@ -108,7 +109,7 @@ export default function AIRecognition() {
       setConfidence(result.confidence);
 
       // Get recipe recommendations
-      const ingredientNames = result.ingredients.map((ing: RecognizedIngredient) => ing.name);
+      const ingredientNames = result.ingredients.map((ing: AIRecognizedIngredient) => ing.name);
       const recipes = await getRecommendationsMutation.mutateAsync({
         ingredients: ingredientNames,
         maxRecipes: 5,

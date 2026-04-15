@@ -6,7 +6,7 @@ import RecipeCard from '@/components/RecipeCard';
 import { useSearchRecipes } from '@/lib/recipes';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { RecipeSummary } from '@shared/types';
+import type { RecipeSummary, RecipeSearchFilters } from '@shared/types';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -41,12 +41,7 @@ export default function SearchResults() {
   const searchResultsQuery = useSearchRecipes(searchQuery, {
     offset: 0,
     limit: ITEMS_PER_PAGE,
-    filters: {
-      cookingTime: filters.cookingTime,
-      calories: filters.calories,
-      difficulty: filters.difficulty,
-      diets: filters.diets,
-    },
+    filters: parsedFilters as RecipeSearchFilters,
   });
 
   const allResults = searchResultsQuery.data?.results || [];

@@ -16,6 +16,7 @@ import { trpc } from './trpc';
 import type {
   RecipeDetails as SharedRecipeDetails,
   RecipeSummary as SharedRecipeSummary,
+  RecipeSearchFilters,
 } from '@shared/types';
 
 export type Recipe = SharedRecipeSummary &
@@ -49,7 +50,7 @@ export type RecipeDetails = Recipe;
  */
 export function useSearchRecipes(
   query: string,
-  options?: { offset?: number; limit?: number; filters?: { cookingTime?: string[]; calories?: string[]; difficulty?: string[]; diets?: string[] } }
+  options?: { offset?: number; limit?: number; filters?: RecipeSearchFilters }
 ) {
   return trpc.recipe.search.useQuery(
     {

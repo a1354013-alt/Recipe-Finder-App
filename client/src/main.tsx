@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "../../server/routers";
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
