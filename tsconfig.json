@@ -7,7 +7,7 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -24,11 +24,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./client/src/*"],
-      "@shared/*": ["./client/src/shared/*"]
-    }
+      "@shared/*": ["./shared/*"]
+    },
+    "types": ["node"]
   },
   "include": [
-    "client/src/**/*"
+    "client/src/**/*",
+    "shared/**/*"
   ],
   "exclude": [
     "node_modules",
