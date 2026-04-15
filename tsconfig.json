@@ -24,16 +24,17 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./client/src/*"],
-      "@shared/*": ["./client/src/shared/*"]
+      "@shared/*": ["./shared/*"]
     }
   },
   "include": [
-    "client/src/**/*"
+    "client/src/**/*",
+    "server/**/*",
+    "shared/**/*",
+    "drizzle/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "server",
-    "drizzle"
+    "dist"
   ]
 }

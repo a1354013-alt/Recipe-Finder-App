@@ -82,10 +82,13 @@ function toFormData(
   contentType: string,
   fileName: string
 ): FormData {
-  const blob =
+  const arrayBuffer =
     typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data], { type: contentType });
+      ? new TextEncoder().encode(data).buffer
+      : data instanceof Uint8Array
+      ? data.buffer
+      : new Uint8Array(data).buffer;
+  const blob = new Blob([arrayBuffer as ArrayBuffer], { type: contentType });
   const form = new FormData();
   form.append("file", blob, fileName || "file");
   return form;

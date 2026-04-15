@@ -7,10 +7,9 @@
 
 import { z } from "zod";
 import { logger } from "../../_core/logger";
-import {
-  RECIPE_PLACEHOLDER_IMAGE,
+import { RECIPE_PLACEHOLDER_IMAGE } from "../../../shared/types";
+import type {
   RecipeDetails,
-  RecipeSearchFilters,
   RecipeSearchParams,
   RecipeSearchResult,
   RecipeSummary,

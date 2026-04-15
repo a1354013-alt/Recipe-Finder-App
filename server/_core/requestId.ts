@@ -21,7 +21,7 @@ import { randomUUID } from "crypto";
 declare global {
   namespace Express {
     interface Request {
-      id: string;
+      id?: string;
     }
   }
 }

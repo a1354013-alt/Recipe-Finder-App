@@ -419,6 +419,21 @@ export async function getAIRecognitionHistoryByIdForUser(
   };
 }
 
+export async function deleteAIRecognitionHistory(
+  userId: number,
+  historyId: number
+): Promise<void> {
+  const db = await getDbOrThrow();
+  await db
+    .delete(schema.aiRecognitionHistory)
+    .where(
+      and(
+        eq(schema.aiRecognitionHistory.id, historyId),
+        eq(schema.aiRecognitionHistory.userId, userId)
+      )
+    );
+}
+
 function safeParseRecognizedIngredients(raw: string | null): AIRecognizedIngredient[] {
   if (!raw) {
     return [];

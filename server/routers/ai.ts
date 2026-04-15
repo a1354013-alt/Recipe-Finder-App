@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   adminProcedure,
   protectedProcedure,
-  publicProcedure,
   router,
 } from "../_core/trpc";
 import {

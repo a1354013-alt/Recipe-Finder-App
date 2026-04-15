@@ -1,13 +1,10 @@
 import { logger } from "../_core/logger";
-import {
+import type {
   RecipeCollectionWithStatus,
   RecipeDetailsWithStatus,
-  RecipeSearchFilters,
   RecipeSearchParams,
   RecipeSearchResultWithStatus,
   RecipeServiceInfo,
-  RecipeSummary,
-  RecipeDifficultyFilter,
 } from "../../shared/types";
 import { LocalRecipeProvider } from "./providers/LocalRecipeProvider";
 import {
@@ -67,7 +64,7 @@ class RecipeService {
   }
 
   async searchRecipes(params: RecipeSearchParams): Promise<RecipeSearchResultWithStatus> {
-    const { query, offset = 0, limit = 12, filters, requestId } = params;
+    const { query, offset = 0, limit = 12, requestId } = params;
     const provider = await this.resolvePrimaryProvider();
 
     if (!query.trim()) {

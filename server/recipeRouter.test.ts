@@ -29,7 +29,7 @@ describe("recipe router contract", () => {
     recipeServiceMocks.searchRecipes.mockResolvedValueOnce(expected);
 
     const caller = appRouter.createCaller(createAuthenticatedContext());
-    const result = await caller.recipe.search({ query: "pasta", offset: 4, number: 8 });
+    const result = await caller.recipe.search({ query: "pasta", offset: 4, limit: 8 });
 
     expect(recipeServiceMocks.searchRecipes).toHaveBeenCalledWith({
       query: "pasta",

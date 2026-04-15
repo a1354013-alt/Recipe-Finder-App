@@ -80,7 +80,8 @@ export function registerOAuthRoutes(app: Express) {
       if (!ENV.publicBaseUrl) {
         logger.error(
           "[OAuth] PUBLIC_BASE_URL not configured",
-          { message: "Cannot proceed with login" },
+          "Cannot proceed with login",
+          undefined,
           req.id
         );
         res.status(500).json({ error: "Server configuration error" });
@@ -332,7 +333,7 @@ export function registerOAuthRoutes(app: Express) {
       );
 
       // 記錄 audit log（非同步，不阻塞重導向）
-      auditOAuthLogin(userInfo.openId, requestId, true, {
+      auditOAuthLogin(userInfo.openId, requestId ?? "unknown", true, {
         name: userInfo.name,
         email: userInfo.email,
         loginMethod: userInfo.loginMethod || userInfo.platform,
